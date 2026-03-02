@@ -164,11 +164,11 @@ Single app that generates a 5-part story via Anthropic SDK, serves it on a mobil
 - [x] Presenter admin page (`/admin`) with advance/reset controls
 - [x] Audience UI auto-loads new parts when presenter advances
 - [x] Containerized with Dockerfile
-- [ ] `GET /healthz` liveness endpoint (simple 200 OK)
-- [ ] `GET /readyz` readiness endpoint (200 OK, 503 during shutdown)
-- [ ] Graceful SIGTERM shutdown (stop accepting connections, drain in-flight, exit 0)
-- [ ] Default port 8080 (Knative convention), configurable via `$PORT`
-- [ ] Dockerfile: non-root user (`USER 1000`), tini for signal forwarding
+- [x] `GET /healthz` liveness endpoint (simple 200 OK)
+- [x] `GET /readyz` readiness endpoint (200 OK, 503 during shutdown)
+- [x] Graceful SIGTERM shutdown (stop accepting connections, drain in-flight, exit 0)
+- [x] Default port 8080 (Knative convention), configurable via `$PORT`
+- [x] Dockerfile: non-root user (`USER 1000`), tini for signal forwarding
 
 ### M2: Voting + OTel Instrumentation
 Add thumbs-up/down voting to each story part. Emit `gen_ai.evaluation.result` OTel span events with correct attributes.

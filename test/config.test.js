@@ -15,7 +15,7 @@ describe('config', () => {
   it('uses default values when env vars are not set', async () => {
     process.env.ANTHROPIC_API_KEY = 'test-key';
     const { default: config } = await import('../src/config.js?' + Date.now());
-    expect(config.port).toBe(3000);
+    expect(config.port).toBe(8080);
     expect(config.variantStyle).toBe('funny');
     expect(config.variantModel).toBe('claude-sonnet-4-20250514');
     expect(config.round).toBe(1);
