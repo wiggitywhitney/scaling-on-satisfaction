@@ -1,0 +1,32 @@
+{
+  "name": "scaling-on-satisfaction",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wiggitywhitney/scaling-on-satisfaction.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/wiggitywhitney/scaling-on-satisfaction/issues"
+  },
+  "homepage": "https://github.com/wiggitywhitney/scaling-on-satisfaction#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}

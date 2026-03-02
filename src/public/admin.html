@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presenter Controls</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 400px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+    h1 { font-size: 20px; margin-bottom: 24px; }
+    .status {
+      font-size: 48px;
+      font-weight: 700;
+      text-align: center;
+      margin: 24px 0;
+      color: #fff;
+    }
+    .status-label {
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .btn-advance {
+      background: #2ecc71;
+      color: #fff;
+    }
+    .btn-advance:hover { background: #27ae60; }
+    .btn-advance:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .btn-reset {
+      background: #444;
+      color: #ccc;
+    }
+    .btn-reset:hover { background: #555; }
+    .info {
+      margin-top: 24px;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Presenter Controls</h1>
+  <div class="status" id="status">0 / 5</div>
+  <div class="status-label">current part</div>
+  <button class="btn-advance" id="btn-advance">Advance to Next Part</button>
+  <button class="btn-reset" id="btn-reset">Reset</button>
+  <div class="info" id="info"></div>
+
+  <script>
+    const status = document.getElementById('status');
+    const btnAdvance = document.getElementById('btn-advance');
+    const btnReset = document.getElementById('btn-reset');
+    const info = document.getElementById('info');
+
+    async function refresh() {
+      const res = await fetch('/api/admin/status');
+      const data = await res.json();
+      status.textContent = `${data.currentPart} / ${data.totalParts}`;
+      btnAdvance.disabled = data.currentPart >= data.totalParts;
+      info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
+    }
+
+    btnAdvance.addEventListener('click', async () => {
+      await fetch('/api/admin/advance', { method: 'POST' });
+      refresh();
+    });
+
+    btnReset.addEventListener('click', async () => {
+      if (confirm('Reset story? All audience sessions will be cleared.')) {
+        await fetch('/api/admin/reset', { method: 'POST' });
+        refresh();
+      }
+    });
+
+    refresh();
+    setInterval(refresh, 3000);
+  </script>
+</body>
+</html>

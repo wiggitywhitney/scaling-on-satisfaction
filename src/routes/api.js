@@ -1,0 +1,106 @@
+import { Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import { TOTAL_PARTS } from '../story/prompts.js';
+import config from '../config.js';
+
+const sessions = new Map();
+let currentPart = 0;
+
+export function getCurrentPart() {
+  return currentPart;
+}
+
+export function resetState() {
+  sessions.clear();
+  currentPart = 0;
+}
+
+function getSession(req, res) {
+  let sessionId = req.cookies.sessionId;
+  if (!sessionId || !sessions.has(sessionId)) {
+    sessionId = uuidv4();
+    res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'lax' });
+    sessions.set(sessionId, { parts: {} });
+  }
+  return { sessionId, session: sessions.get(sessionId) };
+}
+
+export function createApiRouter(generator) {
+  const router = Router();
+
+  router.get('/story/status', (req, res) => {
+    const { session } = getSession(req, res);
+    const generatedParts = Object.keys(session.parts).map(Number).sort((a, b) => a - b);
+    res.json({ totalParts: TOTAL_PARTS, generatedParts, currentPart });
+  });
+
+  router.get('/story/:part', async (req, res) => {
+    const partNumber = parseInt(req.params.part, 10);
+
+    if (isNaN(partNumber)) {
+      return res.status(400).json({ error: 'Part must be a number' });
+    }
+
+    if (partNumber < 1 || partNumber > TOTAL_PARTS) {
+      return res.status(404).json({ error: `Part ${partNumber} not found. Valid range: 1-${TOTAL_PARTS}` });
+    }
+
+    if (partNumber > currentPart) {
+      return res.status(403).json({ error: 'This part is not available yet', currentPart });
+    }
+
+    const { session } = getSession(req, res);
+
+    if (session.parts[partNumber]) {
+      return res.json({
+        part: partNumber,
+        totalParts: TOTAL_PARTS,
+        text: session.parts[partNumber].text,
+      });
+    }
+
+    try {
+      const result = await generator.generatePart(
+        partNumber,
+        config.variantStyle,
+        config.variantModel
+      );
+
+      session.parts[partNumber] = result;
+
+      res.json({
+        part: partNumber,
+        totalParts: TOTAL_PARTS,
+        text: result.text,
+      });
+    } catch (err) {
+      res.status(500).json({ error: `Failed to generate story part: ${err.message}` });
+    }
+  });
+
+  return router;
+}
+
+export function createAdminRouter() {
+  const router = Router();
+
+  router.post('/advance', (req, res) => {
+    if (currentPart >= TOTAL_PARTS) {
+      return res.status(400).json({ error: 'Already at the last part', currentPart });
+    }
+    currentPart++;
+    res.json({ currentPart, totalParts: TOTAL_PARTS });
+  });
+
+  router.post('/reset', (req, res) => {
+    currentPart = 0;
+    sessions.clear();
+    res.json({ currentPart, totalParts: TOTAL_PARTS });
+  });
+
+  router.get('/status', (req, res) => {
+    res.json({ currentPart, totalParts: TOTAL_PARTS, sessions: sessions.size });
+  });
+
+  return router;
+}
