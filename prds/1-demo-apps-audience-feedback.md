@@ -112,12 +112,13 @@ The event is parented to the GenAI operation span when possible, or correlated v
 
 ### What Whitney Builds (This Repo)
 
-- 4 app variants (2 per round) as container images
+- 4 app variants (2 per round) as container images delivered to Thomas for Knative deployment
 - Mobile-friendly web UI (story display + voting)
 - Story generation via Anthropic SDK
 - OTel instrumentation emitting `gen_ai.evaluation.result` events
-- Presenter-controlled pacing via admin page
+- Presenter-controlled pacing via admin page (baked into each app image)
 - Welcome screen for audience before story begins
+- K8s-ready: health endpoints, graceful shutdown, non-root container, `$PORT` env var
 
 ### What Thomas Builds (His Platform)
 
@@ -146,7 +147,7 @@ The event is parented to the GenAI operation span when possible, or correlated v
 
 - [ ] Audience can load the app on their phone and read a story part
 - [ ] Voting emits correct `gen_ai.evaluation.result` OTel span events
-- [ ] 4 container images build and deploy to Knative
+- [ ] 4 container images build and deploy to Knative (K8s-ready: health probes, graceful shutdown, non-root)
 - [ ] Story continuity preserved when switching between variants
 - [ ] Presenter-controlled pacing works (admin advances, audience auto-loads)
 - [ ] Round 1 and Round 2 demonstrate distinct patterns (A/B vs canary)
@@ -163,6 +164,11 @@ Single app that generates a 5-part story via Anthropic SDK, serves it on a mobil
 - [x] Presenter admin page (`/admin`) with advance/reset controls
 - [x] Audience UI auto-loads new parts when presenter advances
 - [x] Containerized with Dockerfile
+- [ ] `GET /healthz` liveness endpoint (simple 200 OK)
+- [ ] `GET /readyz` readiness endpoint (200 OK, 503 during shutdown)
+- [ ] Graceful SIGTERM shutdown (stop accepting connections, drain in-flight, exit 0)
+- [ ] Default port 8080 (Knative convention), configurable via `$PORT`
+- [ ] Dockerfile: non-root user (`USER 1000`), tini for signal forwarding
 
 ### M2: Voting + OTel Instrumentation
 Add thumbs-up/down voting to each story part. Emit `gen_ai.evaluation.result` OTel span events with correct attributes.
@@ -247,6 +253,8 @@ Practice the full 25-minute talk with both rounds working.
 | 2026-03-02 | Welcome screen for audience before story begins | Audience sees "Welcome to The Story Generator! Your story will begin soon." until presenter triggers Part 1. Better than a blank or loading state. |
 | 2026-03-02 | Per-user story generation, non-streaming | Each audience member gets a unique LLM-generated story. Loading indicator → full text display (no streaming). |
 | 2026-03-02 | (Decision 17) Single admin page advances all variants simultaneously | In M3+, the admin page sends advance to all variant URLs (configured via env var). One button, both apps move. Solves presenter UX for multi-variant demos. |
+| 2026-03-02 | K8s readiness requirements added to PRD #1 (not a separate PRD) | Health endpoints (`/healthz`, `/readyz`), graceful SIGTERM shutdown, non-root Dockerfile with tini, default port 8080 via `$PORT`. Small mechanical changes that belong with the container image work, not a standalone PRD. |
+| 2026-03-02 | Final deliverable: 4 container images with admin baked in, delivered to Thomas | Each image contains the full app including the admin page. Round 1: first 2 images deployed together. Round 2: second 2 images. Thomas deploys to Knative; Whitney delivers images. |
 
 ## Research
 
