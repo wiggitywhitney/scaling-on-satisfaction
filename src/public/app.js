@@ -9,6 +9,48 @@ const storyText = document.getElementById('story-text');
 const loading = document.getElementById('loading');
 const waiting = document.getElementById('waiting');
 const progress = document.getElementById('progress');
+const voteButtons = document.getElementById('vote-buttons');
+const voteBtns = document.querySelectorAll('.vote-btn');
+
+function showVoteButtons(existingVote) {
+  voteButtons.classList.add('active');
+  voteBtns.forEach((btn) => {
+    btn.classList.remove('selected', 'dimmed');
+    if (existingVote) {
+      if (btn.dataset.vote === existingVote) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.add('dimmed');
+      }
+    }
+  });
+}
+
+function hideVoteButtons() {
+  voteButtons.classList.remove('active');
+  voteBtns.forEach((btn) => btn.classList.remove('selected', 'dimmed'));
+}
+
+async function submitVote(vote) {
+  try {
+    const res = await fetch(`/api/story/${displayedPart}/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vote }),
+    });
+    if (!res.ok) return;
+
+    showVoteButtons(vote);
+  } catch {
+    // Vote failed silently — not critical to UX
+  }
+}
+
+voteBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    submitVote(btn.dataset.vote);
+  });
+});
 
 function showStory(data) {
   welcome.classList.add('hidden');
@@ -19,6 +61,7 @@ function showStory(data) {
   storyText.classList.add('visible');
   progress.textContent = `Part ${data.part} of ${data.totalParts}`;
   displayedPart = data.part;
+  showVoteButtons(data.vote);
 }
 
 function showLoading() {
@@ -27,12 +70,14 @@ function showLoading() {
   waiting.classList.remove('active');
   storyText.classList.remove('visible');
   loading.classList.add('active');
+  hideVoteButtons();
 }
 
 function showWaitingForNext() {
   loading.classList.remove('active');
   storyText.classList.remove('visible');
   waiting.classList.add('active');
+  hideVoteButtons();
 }
 
 async function fetchPart(part) {

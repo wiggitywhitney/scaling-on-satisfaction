@@ -173,7 +173,7 @@ Single app that generates a 5-part story via Anthropic SDK, serves it on a mobil
 ### M2: Voting + OTel Instrumentation
 Add thumbs-up/down voting to each story part. Emit `gen_ai.evaluation.result` OTel span events with correct attributes.
 
-- [ ] Vote buttons on each story part
+- [x] Vote buttons on each story part
 - [ ] OTel API instrumentation emitting evaluation events
 - [ ] Events include correct attributes (evaluation name, score label/value, response ID)
 - [ ] Events correlated to the generation span

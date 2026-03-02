@@ -56,6 +56,7 @@ export function createApiRouter(generator) {
         part: partNumber,
         totalParts: TOTAL_PARTS,
         text: session.parts[partNumber].text,
+        vote: session.parts[partNumber].vote || null,
       });
     }
 
@@ -72,10 +73,49 @@ export function createApiRouter(generator) {
         part: partNumber,
         totalParts: TOTAL_PARTS,
         text: result.text,
+        vote: session.parts[partNumber].vote || null,
       });
     } catch (err) {
       res.status(500).json({ error: `Failed to generate story part: ${err.message}` });
     }
+  });
+
+  const VALID_VOTES = ['thumbs_up', 'thumbs_down'];
+
+  router.post('/story/:part/vote', (req, res) => {
+    const partNumber = parseInt(req.params.part, 10);
+
+    if (isNaN(partNumber)) {
+      return res.status(400).json({ error: 'Part must be a number' });
+    }
+
+    if (partNumber < 1 || partNumber > TOTAL_PARTS) {
+      return res.status(404).json({ error: `Part ${partNumber} not found. Valid range: 1-${TOTAL_PARTS}` });
+    }
+
+    if (partNumber > currentPart) {
+      return res.status(403).json({ error: 'This part is not available yet', currentPart });
+    }
+
+    const { vote } = req.body || {};
+
+    if (!vote || !VALID_VOTES.includes(vote)) {
+      return res.status(400).json({ error: 'Vote must be thumbs_up or thumbs_down' });
+    }
+
+    const { session } = getSession(req, res);
+
+    if (!session.parts[partNumber]) {
+      return res.status(400).json({ error: 'Part not generated for this session' });
+    }
+
+    session.parts[partNumber].vote = vote;
+
+    res.json({
+      part: partNumber,
+      vote,
+      responseId: session.parts[partNumber].responseId,
+    });
   });
 
   return router;
