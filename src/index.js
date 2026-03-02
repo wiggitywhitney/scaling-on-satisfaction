@@ -3,6 +3,11 @@ import config from './config.js';
 import { createGenerator } from './story/generator.js';
 import { createApp } from './app.js';
 
+if (!config.anthropicApiKey) {
+  console.error('FATAL: ANTHROPIC_API_KEY is not set. Exiting.');
+  process.exit(1);
+}
+
 const client = new Anthropic({ apiKey: config.anthropicApiKey });
 const generator = createGenerator(client);
 

@@ -255,6 +255,8 @@ Practice the full 25-minute talk with both rounds working.
 | 2026-03-02 | (Decision 17) Single admin page advances all variants simultaneously | In M3+, the admin page sends advance to all variant URLs (configured via env var). One button, both apps move. Solves presenter UX for multi-variant demos. |
 | 2026-03-02 | K8s readiness requirements added to PRD #1 (not a separate PRD) | Health endpoints (`/healthz`, `/readyz`), graceful SIGTERM shutdown, non-root Dockerfile with tini, default port 8080 via `$PORT`. Small mechanical changes that belong with the container image work, not a standalone PRD. |
 | 2026-03-02 | Final deliverable: 4 container images with admin baked in, delivered to Thomas | Each image contains the full app including the admin page. Round 1: first 2 images deployed together. Round 2: second 2 images. Thomas deploys to Knative; Whitney delivers images. |
+| 2026-03-02 | Style variants require separate system prompts AND separate beat descriptions | A single style instruction appended to a shared system prompt is insufficient — the model ignores it when surrounding instructions have comedy cues ("land a joke", "absurdity"). Each variant needs its own complete system prompt and beat descriptions written in the target register. Tested and confirmed: dry beats with academic language produce genuinely formal output; shared beats with a style toggle do not. |
+| 2026-03-02 | Fail-fast on missing ANTHROPIC_API_KEY | Server was starting successfully without an API key and only failing on the first LLM request. Now exits immediately with a clear error. |
 
 ## Research
 

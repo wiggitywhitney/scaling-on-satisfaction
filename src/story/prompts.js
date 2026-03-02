@@ -2,10 +2,10 @@ export const TOTAL_PARTS = 5;
 
 const STYLE_INSTRUCTIONS = {
   funny: `Write in a funny, engaging, and humorous tone. Use puns and wordplay — especially plays on tech terminology meeting lunar/space reality. Keep it light and snappy. One good extended metaphor per part maximum; don't stack metaphors.`,
-  dry: `Write in a dry, academic, formal tone — as if this were a peer-reviewed paper or technical report. Use passive voice, jargon, and understated observations. The humor comes from treating absurd situations with complete seriousness. Puns are acceptable if delivered deadpan.`,
+  dry: `Write in a formal, academic tone as if this were a peer-reviewed conference paper or technical incident report. Use passive voice, domain-specific jargon, and precise observations. Treat every situation — no matter how absurd — with complete seriousness. No jokes, no puns, no wordplay, no exclamation marks. Demonstrate vocabulary.`,
 };
 
-const BEATS = {
+const FUNNY_BEATS = {
   1: {
     title: 'Setup — Mystery Mission on the Moon',
     instructions: `The platform engineer arrives on the moon. They don't know why they've been sent — it's a mystery mission. Nobody explained the purpose. They look around at the barren lunar landscape — grey dust, no atmosphere, one-sixth Earth gravity — and do the only thing a platform engineer knows how to do: start setting up a platform. They unpack servers, run cables, configure infrastructure. Lean into the physical absurdity of doing IT work on the moon: no air, bulky spacesuit, everything covered in moon dust. Establish their confusion about why they're here, but also their compulsive need to build.`,
@@ -33,23 +33,71 @@ const BEATS = {
   },
 };
 
+const DRY_BEATS = {
+  1: {
+    title: 'Initial Deployment — Lunar Surface Provisioning',
+    instructions: `The platform engineer is deployed to the lunar surface under undisclosed operational directives. No mission briefing or requirements documentation was provided. The engineer surveys the environment: regolith surface, vacuum conditions, 1.62 m/s² gravitational acceleration (one-sixth terrestrial standard). Absent further instruction, the engineer initiates standard platform provisioning procedures — unpacking server hardware, routing cabling, and configuring baseline infrastructure. Document the environmental constraints affecting manual operations: extravehicular activity suit reducing manual dexterity, fine particulate regolith contaminating exposed hardware surfaces, and absence of atmospheric pressure requiring sealed equipment housing. Note the engineer's lack of clarity regarding mission objectives alongside their procedural default to infrastructure deployment.`,
+    priorContext: null,
+  },
+  2: {
+    title: 'Incident Report — Hardware Displacement Under Reduced Gravity',
+    instructions: `Lunar gravitational acceleration (1.62 m/s²) proves insufficient to maintain rack-mounted server hardware in fixed position. Equipment begins lateral and vertical displacement from mounting points — servers drift from racks and travel across the regolith surface. Document the causal chain precisely: reduced gravitational force means standard rack retention mechanisms, designed for 9.81 m/s² environments, cannot secure hardware. As servers displace, dependent services experience cascading failures — container orchestration reports pod evictions, service endpoints become unreachable, monitoring systems register critical alerts. The engineer attempts manual retrieval of displaced hardware while wearing an extravehicular activity suit, a task complicated by suit bulk and the ongoing displacement of additional units. This failure mode has no terrestrial precedent. The situation remains unresolved at the conclusion of this section.`,
+    priorContext: `In Section 1, the platform engineer was deployed to the lunar surface under undisclosed directives. No mission documentation was provided. The engineer initiated standard platform provisioning: server hardware installation, cable routing, and infrastructure configuration under vacuum conditions with reduced gravitational acceleration.`,
+  },
+  3: {
+    title: 'Incident Report — Latency Constraints on Cislunar CI/CD Operations',
+    instructions: `The engineer determines that the continuous integration and deployment pipeline terminates at Earth-based infrastructure, 384,400 km distant. Electromagnetic signal propagation at c introduces a minimum round-trip latency of approximately 2.56 seconds per request. Document the quantitative impact: a standard deployment operation comprising several hundred discrete API calls accumulates latency measured in tens of minutes. This constraint is imposed by fundamental physics — the speed of light in vacuum — and is not addressable through conventional optimization techniques such as caching, compression, or protocol improvements. Contrast with terrestrial baseline where equivalent operations complete in sub-second timeframes. The engineer evaluates and exhausts available mitigation strategies. The pipeline remains operationally non-viable at the conclusion of this section. This compounds the unresolved hardware displacement documented in Section 2.`,
+    priorContext: `In Section 1, the platform engineer was deployed to the lunar surface and initiated infrastructure provisioning. In Section 2, reduced gravitational acceleration caused server hardware displacement from rack mounts, resulting in cascading service failures. Manual retrieval proved inadequate. That incident remains unresolved.`,
+  },
+  4: {
+    title: 'Resolution and Utilization Assessment',
+    instructions: `This section documents two phases. Phase one: the engineer devises environment-specific remediation for both outstanding incidents. For hardware displacement, describe a specific mechanical solution (anchoring to lunar bedrock, regolith ballast, or equivalent engineered fix). For CI/CD latency, describe a specific architectural solution (local pipeline replication, offline synchronization, or equivalent). Both solutions should be technically plausible and specific. Phase two: the platform achieves full operational status — golden path workflows, internal developer portal, self-service catalog, comprehensive documentation. All systems nominal. However, utilization metrics reveal a single registered user: the engineer. No other personnel are present on the lunar surface. The engineer completes a platform satisfaction survey as sole respondent. Document the contrast between technical excellence and zero adoption. The platform performs flawlessly for no audience.`,
+    priorContext: `In Section 1, the platform engineer was deployed to the lunar surface and began provisioning. In Section 2, reduced gravity caused hardware displacement and cascading failures. In Section 3, Earth-based CI/CD infrastructure introduced prohibitive latency due to speed-of-light constraints across 384,400 km. Both incidents remained unresolved.`,
+  },
+  5: {
+    title: 'First Contact — Exobiological Platform Adoption',
+    instructions: `Non-terrestrial entities emerge in the vicinity of the lunar installation. Describe their physical morphology, their computing equipment, and their apparent technological paradigm — none of these should resemble human equivalents. The entities discover and begin utilizing the platform. They express approval through non-human behavioral patterns — not gestures recognizable as terrestrial social conventions, but distinct alien forms of acknowledgment. The entities demonstrate high platform adoption rates and engagement with the golden path workflows. The engineer observes that the mission's undisclosed purpose is now apparent: the infrastructure was intended for these users. Conclude with the platform achieving its intended utilization under non-terrestrial operators.`,
+    priorContext: `In Section 1, the platform engineer was deployed to the lunar surface under undisclosed directives and began provisioning. In Sections 2 and 3, hardware displacement and CI/CD latency presented environment-specific failures. In Section 4, both incidents were remediated and the platform achieved full operational status with golden path, developer portal, and self-service catalog — but utilization was zero, with the engineer as sole user.`,
+  },
+};
+
+const BEATS_BY_STYLE = {
+  funny: FUNNY_BEATS,
+  dry: DRY_BEATS,
+};
+
 export function buildPrompt(partNumber, style) {
   if (partNumber < 1 || partNumber > TOTAL_PARTS) {
     throw new Error(`Invalid part number: ${partNumber}. Must be between 1 and ${TOTAL_PARTS}.`);
   }
 
-  const beat = BEATS[partNumber];
+  const beats = BEATS_BY_STYLE[style] || BEATS_BY_STYLE.funny;
+  const beat = beats[partNumber];
   const styleInstruction = STYLE_INSTRUCTIONS[style] || STYLE_INSTRUCTIONS.funny;
 
-  const system = [
-    `You are a creative storyteller writing a serialized 5-part story about a platform engineer on the moon.`,
-    `Write approximately 150 words for this part. Do not exceed 175 words. Keep it tight — every sentence should advance the story or land a joke.`,
+  const shared = [
     `Use a gender-neutral protagonist — refer to them as "they" or "the platform engineer" throughout. Never use "he" or "she".`,
-    `Lead with what is physically happening before getting clever about it. The reader should always understand the concrete situation first.`,
-    `NEVER use the phrase "Houston, we have a problem" or any variation of it. That joke is banned.`,
-    styleInstruction,
+    `Lead with what is physically happening. The reader should always understand the concrete situation first.`,
     `Do not include a title or part number header — just write the story text directly.`,
-  ].join('\n\n');
+  ];
+
+  const stylePrompts = {
+    funny: [
+      `You are a creative storyteller writing a serialized 5-part story about a platform engineer on the moon.`,
+      `Write approximately 150 words for this part. Do not exceed 175 words. Keep it tight — every sentence should advance the story or land a joke.`,
+      ...shared,
+      `NEVER use the phrase "Houston, we have a problem" or any variation of it.`,
+      styleInstruction,
+    ],
+    dry: [
+      `You are an academic author documenting a serialized 5-part technical case study about a platform engineer deployed to the lunar surface.`,
+      `Write approximately 150 words for this section. Do not exceed 175 words. Every sentence should convey factual observations or technical analysis.`,
+      ...shared,
+      styleInstruction,
+    ],
+  };
+
+  const system = (stylePrompts[style] || stylePrompts.funny).join('\n\n');
 
   const userParts = [];
 
