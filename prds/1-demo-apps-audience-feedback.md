@@ -174,9 +174,9 @@ Single app that generates a 5-part story via Anthropic SDK, serves it on a mobil
 Add thumbs-up/down voting to each story part. Emit `gen_ai.evaluation.result` OTel span events with correct attributes.
 
 - [x] Vote buttons on each story part
-- [ ] OTel API instrumentation emitting evaluation events
-- [ ] Events include correct attributes (evaluation name, score label/value, response ID)
-- [ ] Events correlated to the generation span
+- [x] OTel API instrumentation emitting evaluation events
+- [x] Events include correct attributes (evaluation name, score label/value, response ID)
+- [x] Events correlated to the generation span
 
 ### M3: Prompt Variants (Round 1 Apps)
 Create the two Round 1 variants: same story arc, different prompt styles (dry/academic vs funny/engaging). Build as separate container images.

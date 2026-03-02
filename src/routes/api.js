@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { TOTAL_PARTS } from '../story/prompts.js';
 import config from '../config.js';
+import { emitEvaluationEvent } from '../telemetry.js';
 
 const sessions = new Map();
 let currentPart = 0;
@@ -110,6 +111,12 @@ export function createApiRouter(generator) {
     }
 
     session.parts[partNumber].vote = vote;
+
+    emitEvaluationEvent({
+      vote,
+      responseId: session.parts[partNumber].responseId,
+      generationSpanContext: session.parts[partNumber].spanContext || null,
+    });
 
     res.json({
       part: partNumber,

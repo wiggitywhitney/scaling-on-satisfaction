@@ -22,6 +22,7 @@
   "homepage": "https://github.com/wiggitywhitney/scaling-on-satisfaction#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
+    "@opentelemetry/api": "^1.9.0",
     "cookie-parser": "^1.4.7",
     "express": "^5.2.1",
     "uuid": "^13.0.0"

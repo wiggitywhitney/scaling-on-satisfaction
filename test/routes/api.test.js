@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
+
+vi.mock('../../src/telemetry.js', () => ({
+  emitEvaluationEvent: vi.fn(),
+}));
+
 import { createApiRouter, createAdminRouter, resetState } from '../../src/routes/api.js';
+import { emitEvaluationEvent } from '../../src/telemetry.js';
 
 function buildApp(mockGenerator) {
   const app = express();
@@ -72,10 +78,12 @@ describe('API routes', () => {
 
   beforeEach(() => {
     resetState();
+    vi.clearAllMocks();
     mockGenerator = {
       generatePart: vi.fn().mockResolvedValue({
         text: 'The platform engineer gazed at the lunar horizon...',
         responseId: 'msg_test_001',
+        spanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
       }),
     };
   });
@@ -311,6 +319,73 @@ describe('API routes', () => {
       });
 
       expect(res.status).toBe(404);
+    });
+
+    it('emits OTel evaluation event on thumbs_up vote', async () => {
+      const app = buildApp(mockGenerator);
+      const sessionId = await setupSessionWithPart(app, mockGenerator);
+
+      await request(app, '/api/story/1/vote', {
+        method: 'POST',
+        cookies: { sessionId },
+        body: { vote: 'thumbs_up' },
+      });
+
+      expect(emitEvaluationEvent).toHaveBeenCalledOnce();
+      expect(emitEvaluationEvent).toHaveBeenCalledWith({
+        vote: 'thumbs_up',
+        responseId: 'msg_test_001',
+        generationSpanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
+      });
+    });
+
+    it('emits OTel evaluation event on thumbs_down vote', async () => {
+      const app = buildApp(mockGenerator);
+      const sessionId = await setupSessionWithPart(app, mockGenerator);
+
+      await request(app, '/api/story/1/vote', {
+        method: 'POST',
+        cookies: { sessionId },
+        body: { vote: 'thumbs_down' },
+      });
+
+      expect(emitEvaluationEvent).toHaveBeenCalledWith({
+        vote: 'thumbs_down',
+        responseId: 'msg_test_001',
+        generationSpanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
+      });
+    });
+
+    it('emits OTel event on vote change', async () => {
+      const app = buildApp(mockGenerator);
+      const sessionId = await setupSessionWithPart(app, mockGenerator);
+
+      await request(app, '/api/story/1/vote', {
+        method: 'POST',
+        cookies: { sessionId },
+        body: { vote: 'thumbs_up' },
+      });
+      await request(app, '/api/story/1/vote', {
+        method: 'POST',
+        cookies: { sessionId },
+        body: { vote: 'thumbs_down' },
+      });
+
+      expect(emitEvaluationEvent).toHaveBeenCalledTimes(2);
+      expect(emitEvaluationEvent.mock.calls[1][0].vote).toBe('thumbs_down');
+    });
+
+    it('does not emit OTel event on invalid vote', async () => {
+      const app = buildApp(mockGenerator);
+      const sessionId = await setupSessionWithPart(app, mockGenerator);
+
+      await request(app, '/api/story/1/vote', {
+        method: 'POST',
+        cookies: { sessionId },
+        body: { vote: 'invalid' },
+      });
+
+      expect(emitEvaluationEvent).not.toHaveBeenCalled();
     });
   });
 
