@@ -181,11 +181,11 @@ Add thumbs-up/down voting to each story part. Emit `gen_ai.evaluation.result` OT
 ### M3: Prompt Variants (Round 1 Apps)
 Create the two Round 1 variants: same story arc, different prompt styles (dry/academic vs funny/engaging). Build as separate container images.
 
-- [ ] App 1a: dry/academic prompt producing the space story
-- [ ] App 1b: funny/engaging prompt producing the same space story
-- [ ] Both share the same story arc (same beats, different style)
-- [ ] Two Dockerfiles or build args producing two images
-- [ ] Single admin page that advances both variants at once (Decision 17)
+- [x] App 1a: dry/academic prompt producing the space story
+- [x] App 1b: funny/engaging prompt producing the same space story
+- [x] Both share the same story arc (same beats, different style)
+- [x] Two Dockerfiles or build args producing two images
+- [x] Single admin page that advances both variants at once (Decision 17)
 
 ### M4: Model Variants (Round 2 Apps)
 Create the two Round 2 variants: same prompt (winning style from Round 1), different models (cheap vs expensive). Build as separate container images.
@@ -257,6 +257,7 @@ Practice the full 25-minute talk with both rounds working.
 | 2026-03-02 | Final deliverable: 4 container images with admin baked in, delivered to Thomas | Each image contains the full app including the admin page. Round 1: first 2 images deployed together. Round 2: second 2 images. Thomas deploys to Knative; Whitney delivers images. |
 | 2026-03-02 | Style variants require separate system prompts AND separate beat descriptions | A single style instruction appended to a shared system prompt is insufficient — the model ignores it when surrounding instructions have comedy cues ("land a joke", "absurdity"). Each variant needs its own complete system prompt and beat descriptions written in the target register. Tested and confirmed: dry beats with academic language produce genuinely formal output; shared beats with a style toggle do not. |
 | 2026-03-02 | Fail-fast on missing ANTHROPIC_API_KEY | Server was starting successfully without an API key and only failing on the first LLM request. Now exits immediately with a clear error. |
+| 2026-03-02 | Dockerfile over Cloud Native Buildpacks for container images | Existing 11-line alpine Dockerfile already follows best practices (non-root, tini, production deps). Alpine images ~100-150MB vs Paketo's Ubuntu-based ~200-300MB. No new tooling dependency. Both produce OCI-compliant images Knative accepts. No reason to switch with a working Dockerfile and a 2-day deadline. |
 
 ## Research
 

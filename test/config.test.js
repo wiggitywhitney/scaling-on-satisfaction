@@ -54,4 +54,24 @@ describe('config', () => {
     const { default: config } = await import('../src/config.js?' + Date.now());
     expect(config.anthropicApiKey).toBe('sk-ant-test-key');
   });
+
+  it('defaults variantUrls to empty array', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.variantUrls).toEqual([]);
+  });
+
+  it('parses VARIANT_URLS as comma-separated list', async () => {
+    process.env.VARIANT_URLS = 'http://app-1a:8080,http://app-1b:8080';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.variantUrls).toEqual(['http://app-1a:8080', 'http://app-1b:8080']);
+  });
+
+  it('trims whitespace from VARIANT_URLS entries', async () => {
+    process.env.VARIANT_URLS = ' http://app-1a:8080 , http://app-1b:8080 ';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.variantUrls).toEqual(['http://app-1a:8080', 'http://app-1b:8080']);
+  });
 });

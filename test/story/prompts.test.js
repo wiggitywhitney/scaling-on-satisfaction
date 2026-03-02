@@ -37,7 +37,7 @@ describe('prompts', () => {
 
     it('bans "Houston, we have a problem"', () => {
       const prompt = buildPrompt(1, 'funny');
-      expect(prompt.system).toMatch(/houston.*banned/i);
+      expect(prompt.system).toMatch(/never.*houston/i);
     });
 
     it('instructs to lead with physical reality', () => {

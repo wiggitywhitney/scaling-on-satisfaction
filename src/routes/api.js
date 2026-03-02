@@ -128,21 +128,38 @@ export function createApiRouter(generator) {
   return router;
 }
 
+async function forwardToVariants(path) {
+  const results = [];
+  for (const baseUrl of config.variantUrls) {
+    const url = `${baseUrl.replace(/\/$/, '')}/api/admin/${path}`;
+    try {
+      const res = await fetch(url, { method: 'POST' });
+      const data = await res.json();
+      results.push({ url: baseUrl, ok: true, ...data });
+    } catch (err) {
+      results.push({ url: baseUrl, ok: false, error: err.message });
+    }
+  }
+  return results;
+}
+
 export function createAdminRouter() {
   const router = Router();
 
-  router.post('/advance', (req, res) => {
+  router.post('/advance', async (req, res) => {
     if (currentPart >= TOTAL_PARTS) {
       return res.status(400).json({ error: 'Already at the last part', currentPart });
     }
     currentPart++;
-    res.json({ currentPart, totalParts: TOTAL_PARTS });
+    const variants = await forwardToVariants('advance');
+    res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
 
-  router.post('/reset', (req, res) => {
+  router.post('/reset', async (req, res) => {
     currentPart = 0;
     sessions.clear();
-    res.json({ currentPart, totalParts: TOTAL_PARTS });
+    const variants = await forwardToVariants('reset');
+    res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
 
   router.get('/status', (req, res) => {

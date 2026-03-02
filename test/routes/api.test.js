@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 
@@ -8,6 +8,7 @@ vi.mock('../../src/telemetry.js', () => ({
 
 import { createApiRouter, createAdminRouter, resetState } from '../../src/routes/api.js';
 import { emitEvaluationEvent } from '../../src/telemetry.js';
+import config from '../../src/config.js';
 
 function buildApp(mockGenerator) {
   const app = express();
@@ -458,6 +459,111 @@ describe('API routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.currentPart).toBe(0);
+    });
+  });
+
+  describe('multi-variant admin forwarding', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      config.variantUrls = [];
+    });
+
+    afterEach(() => {
+      config.variantUrls = [];
+      global.fetch = originalFetch;
+    });
+
+    it('advance returns empty variants array when no variant URLs configured', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.body.variants).toEqual([]);
+    });
+
+    it('reset returns empty variants array when no variant URLs configured', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/reset', { method: 'POST' });
+
+      expect(res.body.variants).toEqual([]);
+    });
+
+    it('advance forwards to variant URLs', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://app-1b:8080/api/admin/advance',
+        { method: 'POST' }
+      );
+      expect(res.body.variants).toHaveLength(1);
+      expect(res.body.variants[0].ok).toBe(true);
+      expect(res.body.variants[0].url).toBe('http://app-1b:8080');
+    });
+
+    it('reset forwards to variant URLs', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 0, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      const res = await request(app, '/api/admin/reset', { method: 'POST' });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://app-1b:8080/api/admin/reset',
+        { method: 'POST' }
+      );
+      expect(res.body.variants).toHaveLength(1);
+      expect(res.body.variants[0].ok).toBe(true);
+    });
+
+    it('forwards to multiple variant URLs', async () => {
+      config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(res.body.variants).toHaveLength(2);
+    });
+
+    it('handles variant URL failure gracefully', async () => {
+      config.variantUrls = ['http://unreachable:8080'];
+      global.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBe(1);
+      expect(res.body.variants).toHaveLength(1);
+      expect(res.body.variants[0].ok).toBe(false);
+      expect(res.body.variants[0].error).toMatch(/Connection refused/);
+    });
+
+    it('strips trailing slash from variant URLs', async () => {
+      config.variantUrls = ['http://app-1b:8080/'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://app-1b:8080/api/admin/advance',
+        { method: 'POST' }
+      );
     });
   });
 });
