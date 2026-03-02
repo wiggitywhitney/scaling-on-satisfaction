@@ -1,5 +1,7 @@
 node_modules/
 .env
+.env.*
+!.env.example
 journal/
 dist/
 .DS_Store

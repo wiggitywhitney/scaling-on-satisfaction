@@ -204,7 +204,7 @@ Practice the full 25-minute talk with both rounds working.
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-02-19 | Story concept: "A Kubernetes developer deploys their stateful app in space" | Fun, relatable to audience, space theme allows creative freedom |
-| 2026-02-19 | Round 1: prompt variants (comedy vs adventure), Round 2: model upgrade | Avoids vendor benchmarking in Round 1; Round 2 tests a realistic cost question |
+| 2026-02-19 | Round 1: prompt variants (dry/academic vs funny/engaging), Round 2: model upgrade | Avoids vendor benchmarking in Round 1; Round 2 tests a realistic cost question |
 | 2026-02-25 | JavaScript, not TypeScript | Demo simplicity, faster iteration |
 | 2026-02-25 | Anthropic SDK for LLM calls | May make vendor-agnostic later |
 | 2026-02-25 | Datadog as observability backend | Whitney works at Datadog; Thomas's platform ships OTel to any endpoint |
