@@ -1,0 +1,12 @@
+# Secrets configuration for vals
+# https://github.com/helmfile/vals
+#
+# Usage:
+#   vals eval -f .vals.yaml              # Show resolved values
+#   vals exec -f .vals.yaml -- command   # Run command with secrets injected
+#
+# For MCP servers that need secrets (like CodeRabbit), export before starting Claude Code:
+#   eval $(vals eval -f .vals.yaml --output shell)
+
+ANTHROPIC_API_KEY: ref+gcpsecrets://demoo-ooclock/anthropic-api-key
+GITHUB_TOKEN: ref+gcpsecrets://demoo-ooclock/github-token
