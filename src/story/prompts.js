@@ -134,7 +134,7 @@ const BEATS = {
 };
 
 export function buildPrompt(partNumber, style, round = 1) {
-  if (partNumber < 1 || partNumber > TOTAL_PARTS) {
+  if (!Number.isInteger(partNumber) || partNumber < 1 || partNumber > TOTAL_PARTS) {
     throw new Error(`Invalid part number: ${partNumber}. Must be between 1 and ${TOTAL_PARTS}.`);
   }
 

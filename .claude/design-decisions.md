@@ -19,7 +19,7 @@ Building a mobile-friendly Node.js/Express web app that serves 5-part GenAI stor
 - **[REJECTED] Separate admin service/app**: Admin is baked into each app image, not a standalone service. The `/admin` page lives in the same Express server.
 - **[REJECTED] Separate PRD for K8s readiness**: K8s readiness items (health endpoints, graceful shutdown, Dockerfile hardening) were added to PRD #1's M1 milestone, not a separate PRD.
 - **[REJECTED] npm start in Dockerfile CMD**: Must use `node src/index.js` directly — npm swallows exit signals (SIGTERM).
-- **[REJECTED] "Houston, we have a problem" in stories**: Explicitly banned in the system prompt. The LLM reaches for this cliche every time.
+- **[REJECTED] "Houston, we have a problem" in stories**: Explicitly banned in the system prompt. The LLM reaches for this cliché every time.
 - **[REJECTED] Long/dense story parts (~250 words)**: Original prompts produced ~250 words of dense metaphor-stacked text. Reduced to ~150 words target, 175 hard cap, with "one extended metaphor max" rule.
 - **[REJECTED] Admin routes at `/admin/*`**: Initially admin API was at `/admin/advance`, `/admin/reset` — this conflicted with serving `admin.html` at `/admin`. API routes moved to `/api/admin/*` so `/admin` serves the HTML page.
 - **[REJECTED] Dependency checks in liveness probes**: K8s best practice — liveness should be simple 200 OK. If liveness checks external deps and they're down, K8s restart-loops your pods.
@@ -28,7 +28,7 @@ Building a mobile-friendly Node.js/Express web app that serves 5-part GenAI stor
 
 1. **Presenter-only pacing** — No timer. Presenter hits "Advance" on `/admin` page. Audience UI polls every 2s and auto-loads new parts when available. Server returns 403 for parts beyond `currentPart`.
 
-2. **~150 word target, 175 hard cap** — Story parts must be short for 60-second phone reading. Physical-reality-first instruction: lead with what is physically happening before getting clever.
+2. **~150-word target, 175 hard cap** — Story parts must be short for 60-second phone reading. Physical-reality-first instruction: lead with what is physically happening before getting clever.
 
 3. **Story structure: Parts 2-3 cliffhangers, Part 4 solves both** — Parts 2 and 3 present problems (floating servers, speed-of-light CI/CD) and end on unsolved cliffhangers. Part 4 reveals creative solutions to both problems AND carries the emotional weight of loneliness.
 

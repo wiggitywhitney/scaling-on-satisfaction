@@ -122,6 +122,8 @@ describe('prompts', () => {
       expect(() => buildPrompt(0, 'funny')).toThrow();
       expect(() => buildPrompt(6, 'funny')).toThrow();
       expect(() => buildPrompt(-1, 'funny')).toThrow();
+      expect(() => buildPrompt(1.5, 'funny')).toThrow(/Invalid part number/);
+      expect(() => buildPrompt(NaN, 'funny')).toThrow(/Invalid part number/);
     });
 
     it('throws for invalid round', () => {
