@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Story Generator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>The Story Generator</h1>
+      <div class="progress" id="progress"></div>
+    </header>
+
+    <main>
+      <div class="welcome" id="welcome">
+        <p class="welcome-heading">Welcome to The Story Generator!</p>
+        <p class="welcome-sub">Your story will begin soon.</p>
+      </div>
+      <div class="story" id="story">
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p>Generating your story...</p>
+        </div>
+        <div class="waiting" id="waiting">
+          <p>Waiting for the next part...</p>
+        </div>
+        <div class="story-text" id="story-text"></div>
+        <div class="vote-buttons" id="vote-buttons">
+          <button class="vote-btn" data-vote="thumbs_up">&#128077;</button>
+          <button class="vote-btn" data-vote="thumbs_down">&#128078;</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
