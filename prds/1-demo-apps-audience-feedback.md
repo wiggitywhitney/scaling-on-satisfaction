@@ -219,19 +219,19 @@ Single admin page that advances all variant apps simultaneously. Basic presenter
 ### M6: Integration Testing with Thomas's Platform
 End-to-end testing on Thomas's Knative + Flagger platform.
 
-- [ ] Apps deploy to Knative and serve traffic
-- [ ] OTel events reach the Collector
-- [ ] Count connector produces Prometheus metrics
-- [ ] Flagger reads metrics and shifts traffic
-- [ ] Full round plays through successfully
-- [ ] README: project overview, dev setup, build images, run locally (`/write-docs`)
+- [~] Apps deploy to Knative and serve traffic (deferred: requires Thomas's platform)
+- [~] OTel events reach the Collector (deferred: requires Thomas's platform)
+- [~] Count connector produces Prometheus metrics (deferred: requires Thomas's platform)
+- [~] Flagger reads metrics and shifts traffic (deferred: requires Thomas's platform)
+- [~] Full round plays through successfully (deferred: requires Thomas's platform)
+- [x] README: project overview, dev setup, build images, run locally (`/write-docs`)
 
 ### M7: Datadog Dashboards
 Create dashboards showing satisfaction scores, traffic split, and Flagger decisions.
 
-- [ ] Satisfaction score by variant over time
-- [ ] Traffic split visualization
-- [ ] Flagger decision log
+- [~] Satisfaction score by variant over time (deferred: requires Thomas's platform + Datadog)
+- [~] Traffic split visualization (deferred: requires Thomas's platform + Datadog)
+- [~] Flagger decision log (deferred: requires Thomas's platform + Datadog)
 
 ## Decision Log
 
