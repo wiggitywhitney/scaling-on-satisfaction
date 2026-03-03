@@ -203,10 +203,10 @@ Create the two Round 1 variants: same story arc, different prompt styles (dry/ac
 Create the two Round 2 variants: same prompt (winning style from Round 1), different models (cheap vs expensive). Circus/Houdini water tank theme. Build as separate container images.
 
 - [x] Round 2 story bible prompts for circus/Houdini beats (Decision 18)
-- [ ] App 2a: cheap model with circus story
-- [ ] App 2b: expensive model with circus story
-- [ ] Same prompt template, configurable model selection
-- [ ] Two container images
+- [x] App 2a: cheap model with circus story
+- [x] App 2b: expensive model with circus story
+- [x] Same prompt template, configurable model selection
+- [x] Two container images
 
 ### M5: Multi-Variant Admin (Nice-to-Have)
 Single admin page that advances all variant apps simultaneously. Basic presenter gate is already in M1; this adds multi-variant coordination.
@@ -279,6 +279,7 @@ Practice the full 25-minute talk with both rounds working.
 | 2026-03-02 | Gender-neutral for all Round 2 characters | Use "they" for the developer, cannonball, trapeze artist(s), clowns — every character. Same principle as Round 1's gender-neutral protagonist, extended to the full cast. |
 | 2026-03-02 | Developer physical state escalates across parts | Running out of breath → lightheaded → panicking → gasping for air. Built-in cliffhangers at each part boundary. |
 | 2026-03-02 | ~~Round 2 (underwater) needs same story bible treatment~~ Superseded by Decision 18 | ~~Design detail-level beats before M4 implementation~~ Beats now designed as part of Decision 18. |
+| 2026-03-02 | Round 2 models: Haiku 4.5 (`claude-haiku-4-5-20251001`) cheap, Opus 4.6 (`claude-opus-4-6`) expensive | 5x price difference ($1/$5 vs $5/$25 per MTok). Maximum quality contrast for "is the upgrade worth it?" demo framing. Haiku is fast/cheap; Opus is the frontier model. |
 
 ## Research
 
