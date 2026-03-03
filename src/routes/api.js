@@ -144,10 +144,17 @@ async function forwardToVariants(path) {
   return results;
 }
 
+function requireSecret(req, res, next) {
+  if (!config.adminSecret) return next();
+  const provided = req.query.secret || '';
+  if (provided === config.adminSecret) return next();
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
 export function createAdminRouter() {
   const router = Router();
 
-  router.post('/advance', async (req, res) => {
+  router.post('/advance', requireSecret, async (req, res) => {
     if (currentPart >= TOTAL_PARTS) {
       return res.status(400).json({ error: 'Already at the last part', currentPart });
     }
@@ -156,7 +163,7 @@ export function createAdminRouter() {
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
 
-  router.post('/reset', async (req, res) => {
+  router.post('/reset', requireSecret, async (req, res) => {
     currentPart = 0;
     sessions.clear();
     const variants = await forwardToVariants('reset');
@@ -165,6 +172,23 @@ export function createAdminRouter() {
 
   router.get('/status', (req, res) => {
     res.json({ currentPart, totalParts: TOTAL_PARTS, sessions: sessions.size });
+  });
+
+  router.get('/variant-status', async (req, res) => {
+    const variants = [];
+    for (let i = 0; i < config.variantUrls.length; i++) {
+      const baseUrl = config.variantUrls[i];
+      const label = (config.variantLabels && config.variantLabels[i]) || baseUrl;
+      const url = `${baseUrl.replace(/\/$/, '')}/api/admin/status`;
+      try {
+        const fetchRes = await fetch(url);
+        const data = await fetchRes.json();
+        variants.push({ url: baseUrl, label, ok: true, ...data });
+      } catch (err) {
+        variants.push({ url: baseUrl, label, ok: false, error: err.message });
+      }
+    }
+    res.json({ variants });
   });
 
   return router;

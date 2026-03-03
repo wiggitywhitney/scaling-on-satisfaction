@@ -2,12 +2,12 @@ export const TOTAL_PARTS = 5;
 
 const STYLE_INSTRUCTIONS = {
   funny: `Write in a funny, engaging, and humorous tone. Use puns and wordplay — especially plays on tech terminology meeting lunar/space reality. Keep it light and snappy. One good extended metaphor per part maximum; don't stack metaphors.`,
-  dry: `Write in a formal, academic tone as if this were a peer-reviewed conference paper or technical incident report. Use passive voice, domain-specific jargon, and precise observations. Treat every situation — no matter how absurd — with complete seriousness. No jokes, no puns, no wordplay, no exclamation marks. Demonstrate vocabulary.`,
+  dry: `Write in a formal, academic tone as if this were a peer-reviewed conference paper or technical incident report. Use passive voice, domain-specific jargon, and precise observations. Treat every situation — no matter how absurd — with complete seriousness. No jokes, no puns, no wordplay, no exclamation marks. Use precise, technical, and occasionally obscure vocabulary.`,
 };
 
 const ROUND2_STYLE_INSTRUCTIONS = {
   funny: `Write in a funny, engaging, and humorous tone. Use puns and wordplay — especially plays on tech terminology meeting circus reality. Keep it light and snappy. One good extended metaphor per part maximum; don't stack metaphors.`,
-  dry: `Write in a formal, academic tone as if this were a peer-reviewed conference paper or technical incident report. Use passive voice, domain-specific jargon, and precise observations. Treat every situation — no matter how absurd — with complete seriousness. No jokes, no puns, no wordplay, no exclamation marks. Demonstrate vocabulary.`,
+  dry: `Write in a formal, academic tone as if this were a peer-reviewed conference paper or technical incident report. Use passive voice, domain-specific jargon, and precise observations. Treat every situation — no matter how absurd — with complete seriousness. No jokes, no puns, no wordplay, no exclamation marks. Use precise, technical, and occasionally obscure vocabulary.`,
 };
 
 // Round 1: Platform Engineer on the Moon
@@ -151,24 +151,29 @@ export function buildPrompt(partNumber, style, round = 1) {
       `Do not include a title or part number header — just write the story text directly.`,
       `Always spell out "Clown Native Computing Foundation" in full — never abbreviate to CNCF, never say "Cloud Native."`,
       `No animal acts — no lions, elephants, or animal performers of any kind.`,
+      `Do not summarize or recap earlier parts — the audience has already read them. Start directly in the action of this part.`,
+      `Use 2-3 short paragraphs. The audience reads on phone screens.`,
     ]
     : [
       `Use a gender-neutral protagonist — refer to them as "they" or "the platform engineer" throughout. Never use "he" or "she".`,
       `Lead with what is physically happening. The reader should always understand the concrete situation first.`,
       `Do not include a title or part number header — just write the story text directly.`,
+      `Do not summarize or recap earlier parts — the audience has already read them. Start directly in the action of this part.`,
+      `Use 2-3 short paragraphs. The audience reads on phone screens.`,
+      `NEVER use the phrase "Houston, we have a problem" or any variation of it.`,
     ];
 
   const stylePrompts = round === 2
     ? {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about a developer performing the Houdini act at the Clown Native Computing Foundation circus.`,
-        `Write approximately 150 words for this part. Do not exceed 175 words. Keep it tight — every sentence should advance the story or land a joke.`,
+        `Write at least 130 words and no more than 175 words (target 150). Keep it tight — every sentence should advance the story or land a joke.`,
         ...shared,
         styleInstruction,
       ],
       dry: [
         `You are an academic author documenting a serialized 5-part technical case study about a developer performing an escape act at a circus operated by the Clown Native Computing Foundation.`,
-        `Write approximately 150 words for this section. Do not exceed 175 words. Every sentence should convey factual observations or technical analysis.`,
+        `Write at least 130 words and no more than 175 words (target 150). Every sentence should convey factual observations or technical analysis.`,
         ...shared,
         styleInstruction,
       ],
@@ -176,14 +181,13 @@ export function buildPrompt(partNumber, style, round = 1) {
     : {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about a platform engineer on the moon.`,
-        `Write approximately 150 words for this part. Do not exceed 175 words. Keep it tight — every sentence should advance the story or land a joke.`,
+        `Write at least 130 words and no more than 175 words (target 150). Keep it tight — every sentence should advance the story or land a joke.`,
         ...shared,
-        `NEVER use the phrase "Houston, we have a problem" or any variation of it.`,
         styleInstruction,
       ],
       dry: [
         `You are an academic author documenting a serialized 5-part technical case study about a platform engineer deployed to the lunar surface.`,
-        `Write approximately 150 words for this section. Do not exceed 175 words. Every sentence should convey factual observations or technical analysis.`,
+        `Write at least 130 words and no more than 175 words (target 150). Every sentence should convey factual observations or technical analysis.`,
         ...shared,
         styleInstruction,
       ],

@@ -3,6 +3,10 @@ function loadConfig() {
     ? process.env.VARIANT_URLS.split(',').map(u => u.trim()).filter(Boolean)
     : [];
 
+  const variantLabels = process.env.VARIANT_LABELS
+    ? process.env.VARIANT_LABELS.split(',').map(l => l.trim()).filter(Boolean)
+    : [];
+
   return {
     port: parseInt(process.env.PORT || '8080', 10),
     variantStyle: process.env.VARIANT_STYLE || 'funny',
@@ -10,6 +14,8 @@ function loadConfig() {
     round: parseInt(process.env.ROUND || '1', 10),
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     variantUrls,
+    variantLabels,
+    adminSecret: process.env.ADMIN_SECRET || '',
   };
 }
 

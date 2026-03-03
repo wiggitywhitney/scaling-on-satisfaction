@@ -566,4 +566,188 @@ describe('API routes', () => {
       );
     });
   });
+
+  describe('admin auth', () => {
+    const originalSecret = config.adminSecret;
+
+    afterEach(() => {
+      config.adminSecret = originalSecret;
+    });
+
+    it('allows advance without secret when ADMIN_SECRET is not set', async () => {
+      config.adminSecret = '';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBe(1);
+    });
+
+    it('allows reset without secret when ADMIN_SECRET is not set', async () => {
+      config.adminSecret = '';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/reset', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('rejects advance without secret when ADMIN_SECRET is set', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toMatch(/Unauthorized/);
+    });
+
+    it('rejects reset without secret when ADMIN_SECRET is set', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/reset', { method: 'POST' });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('allows advance with correct secret in query param', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance?secret=test-secret', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBe(1);
+    });
+
+    it('allows reset with correct secret in query param', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/reset?secret=test-secret', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('rejects advance with wrong secret', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance?secret=wrong', { method: 'POST' });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('does not protect status endpoint', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/status');
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBeDefined();
+    });
+
+    it('does not protect variant-status endpoint', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(res.status).toBe(200);
+      expect(res.body.variants).toBeDefined();
+    });
+  });
+
+  describe('variant status', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      config.variantUrls = [];
+      config.variantLabels = [];
+    });
+
+    afterEach(() => {
+      config.variantUrls = [];
+      config.variantLabels = [];
+      global.fetch = originalFetch;
+    });
+
+    it('returns empty variants array when no variant URLs configured', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(res.status).toBe(200);
+      expect(res.body.variants).toEqual([]);
+    });
+
+    it('fetches status from each variant URL', async () => {
+      config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 2, totalParts: 5, sessions: 10 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(global.fetch).toHaveBeenCalledWith('http://app-1a:8080/api/admin/status');
+      expect(global.fetch).toHaveBeenCalledWith('http://app-1b:8080/api/admin/status');
+      expect(res.body.variants).toHaveLength(2);
+      expect(res.body.variants[0]).toEqual({
+        url: 'http://app-1a:8080',
+        label: 'http://app-1a:8080',
+        ok: true,
+        currentPart: 2,
+        totalParts: 5,
+        sessions: 10,
+      });
+    });
+
+    it('uses VARIANT_LABELS when available', async () => {
+      config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
+      config.variantLabels = ['Round 1 Funny', 'Round 1 Dry'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(res.body.variants[0].label).toBe('Round 1 Funny');
+      expect(res.body.variants[1].label).toBe('Round 1 Dry');
+    });
+
+    it('falls back to URL when label is missing for an index', async () => {
+      config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
+      config.variantLabels = ['Round 1 Funny'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 3 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(res.body.variants[0].label).toBe('Round 1 Funny');
+      expect(res.body.variants[1].label).toBe('http://app-1b:8080');
+    });
+
+    it('handles variant failure gracefully', async () => {
+      config.variantUrls = ['http://unreachable:8080'];
+      global.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(res.status).toBe(200);
+      expect(res.body.variants).toHaveLength(1);
+      expect(res.body.variants[0].ok).toBe(false);
+      expect(res.body.variants[0].error).toMatch(/Connection refused/);
+    });
+
+    it('strips trailing slash from variant URLs', async () => {
+      config.variantUrls = ['http://app-1b:8080/'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 2 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/variant-status');
+
+      expect(global.fetch).toHaveBeenCalledWith('http://app-1b:8080/api/admin/status');
+    });
+  });
 });

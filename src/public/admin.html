@@ -58,6 +58,46 @@
       color: #666;
       text-align: center;
     }
+    .variants {
+      margin-top: 32px;
+      border-top: 1px solid #333;
+      padding-top: 20px;
+    }
+    .variants h2 {
+      font-size: 14px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .variant-card {
+      background: #252525;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .variant-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+    .variant-detail {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .variant-part {
+      font-size: 20px;
+      font-weight: 700;
+      min-width: 48px;
+      text-align: right;
+    }
+    .variant-sync { color: #2ecc71; }
+    .variant-lag { color: #f1c40f; }
+    .variant-err { color: #e74c3c; }
   </style>
 </head>
 <body>
@@ -67,35 +107,76 @@
   <button class="btn-advance" id="btn-advance">Advance to Next Part</button>
   <button class="btn-reset" id="btn-reset">Reset</button>
   <div class="info" id="info"></div>
+  <div class="variants" id="variants"></div>
 
   <script>
     const status = document.getElementById('status');
     const btnAdvance = document.getElementById('btn-advance');
     const btnReset = document.getElementById('btn-reset');
     const info = document.getElementById('info');
+    const variantsEl = document.getElementById('variants');
+
+    let mainCurrentPart = 0;
+    const urlParams = new URLSearchParams(window.location.search);
+    const secret = urlParams.get('secret') || '';
+    const secretQuery = secret ? `?secret=${encodeURIComponent(secret)}` : '';
 
     async function refresh() {
       const res = await fetch('/api/admin/status');
       const data = await res.json();
+      mainCurrentPart = data.currentPart;
       status.textContent = `${data.currentPart} / ${data.totalParts}`;
       btnAdvance.disabled = data.currentPart >= data.totalParts;
       info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
     }
 
+    async function refreshVariants() {
+      const res = await fetch('/api/admin/variant-status');
+      const data = await res.json();
+      if (!data.variants || data.variants.length === 0) {
+        variantsEl.style.display = 'none';
+        return;
+      }
+      variantsEl.style.display = '';
+      variantsEl.innerHTML = '<h2>Variants</h2>' + data.variants.map(v => {
+        if (!v.ok) {
+          return `<div class="variant-card">
+            <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">error: ${esc(v.error)}</div></div>
+            <div class="variant-part variant-err">ERR</div>
+          </div>`;
+        }
+        const syncClass = v.currentPart === mainCurrentPart ? 'variant-sync' : 'variant-lag';
+        return `<div class="variant-card">
+          <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">${v.sessions} session${v.sessions !== 1 ? 's' : ''}</div></div>
+          <div class="variant-part ${syncClass}">${v.currentPart} / ${v.totalParts}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
     btnAdvance.addEventListener('click', async () => {
-      await fetch('/api/admin/advance', { method: 'POST' });
+      await fetch(`/api/admin/advance${secretQuery}`, { method: 'POST' });
       refresh();
+      refreshVariants();
     });
 
     btnReset.addEventListener('click', async () => {
       if (confirm('Reset story? All audience sessions will be cleared.')) {
-        await fetch('/api/admin/reset', { method: 'POST' });
+        await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
         refresh();
+        refreshVariants();
       }
     });
 
     refresh();
+    refreshVariants();
     setInterval(refresh, 3000);
+    setInterval(refreshVariants, 3000);
   </script>
 </body>
 </html>

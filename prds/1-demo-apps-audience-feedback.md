@@ -211,10 +211,10 @@ Create the two Round 2 variants: same prompt (winning style from Round 1), diffe
 ### M5: Multi-Variant Admin (Nice-to-Have)
 Single admin page that advances all variant apps simultaneously. Basic presenter gate is already in M1; this adds multi-variant coordination.
 
-- [ ] Admin page accepts list of variant URLs via config (e.g., `VARIANT_URLS` env var)
-- [ ] Single "Advance" button POSTs to all variant servers
-- [ ] Status display shows current part for each variant
-- [ ] Simple auth (shared secret or local-only)
+- [x] Admin page accepts list of variant URLs via config (e.g., `VARIANT_URLS` env var)
+- [x] Single "Advance" button POSTs to all variant servers
+- [x] Status display shows current part for each variant
+- [x] Simple auth (shared secret or local-only)
 
 ### M6: Integration Testing with Thomas's Platform
 End-to-end testing on Thomas's Knative + Flagger platform.
@@ -273,6 +273,9 @@ Create dashboards showing satisfaction scores, traffic split, and Flagger decisi
 | 2026-03-02 | Developer physical state escalates across parts | Running out of breath → lightheaded → panicking → gasping for air. Built-in cliffhangers at each part boundary. |
 | 2026-03-02 | ~~Round 2 (underwater) needs same story bible treatment~~ Superseded by Decision 18 | ~~Design detail-level beats before M4 implementation~~ Beats now designed as part of Decision 18. |
 | 2026-03-02 | Round 2 models: Haiku 4.5 (`claude-haiku-4-5-20251001`) cheap, Opus 4.6 (`claude-opus-4-6`) expensive | 5x price difference ($1/$5 vs $5/$25 per MTok). Maximum quality contrast for "is the upgrade worth it?" demo framing. Haiku is fast/cheap; Opus is the frontier model. |
+| 2026-03-02 | `VARIANT_LABELS` env var for friendly names in admin status display | Raw URLs are unreadable during a live demo. Optional comma-separated labels (e.g., "Round 1 Funny,Round 1 Dry") fall back to URLs if not set. |
+| 2026-03-02 | `ADMIN_SECRET` shared-secret auth, mutations only | Protects `/advance` and `/reset` via query param (`?secret=<value>`). Status endpoints stay open — read-only and harmless. If `ADMIN_SECRET` not set, admin is open (local dev). Presenter bookmarks `/admin?secret=<value>`. |
+| 2026-03-02 | Prompt improvements from `/write-prompt` evaluation | Added: minimum word count floor (130 words), anti-repetition constraint, paragraph structure guidance (2-3 short paragraphs for phone), Houston ban extended to dry variant, clarified "Demonstrate vocabulary" directive. |
 
 ## Research
 

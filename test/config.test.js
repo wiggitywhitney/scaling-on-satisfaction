@@ -74,4 +74,37 @@ describe('config', () => {
     const { default: config } = await import('../src/config.js?' + Date.now());
     expect(config.variantUrls).toEqual(['http://app-1a:8080', 'http://app-1b:8080']);
   });
+
+  it('defaults variantLabels to empty array', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.variantLabels).toEqual([]);
+  });
+
+  it('parses VARIANT_LABELS as comma-separated list', async () => {
+    process.env.VARIANT_LABELS = 'Round 1 Funny,Round 1 Dry';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.variantLabels).toEqual(['Round 1 Funny', 'Round 1 Dry']);
+  });
+
+  it('trims whitespace from VARIANT_LABELS entries', async () => {
+    process.env.VARIANT_LABELS = ' Round 1 Funny , Round 1 Dry ';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.variantLabels).toEqual(['Round 1 Funny', 'Round 1 Dry']);
+  });
+
+  it('defaults adminSecret to empty string', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.adminSecret).toBe('');
+  });
+
+  it('reads ADMIN_SECRET from environment', async () => {
+    process.env.ADMIN_SECRET = 'my-secret-123';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.adminSecret).toBe('my-secret-123');
+  });
 });
