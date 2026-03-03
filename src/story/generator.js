@@ -6,8 +6,8 @@ export function createGenerator(client) {
   const tracer = getTracer();
 
   return {
-    async generatePart(partNumber, style, model) {
-      const prompt = buildPrompt(partNumber, style);
+    async generatePart(partNumber, style, model, round = 1) {
+      const prompt = buildPrompt(partNumber, style, round);
 
       return tracer.startActiveSpan(`chat ${model}`, {
         kind: SpanKind.CLIENT,

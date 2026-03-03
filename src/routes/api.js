@@ -65,7 +65,8 @@ export function createApiRouter(generator) {
       const result = await generator.generatePart(
         partNumber,
         config.variantStyle,
-        config.variantModel
+        config.variantModel,
+        config.round
       );
 
       session.parts[partNumber] = result;

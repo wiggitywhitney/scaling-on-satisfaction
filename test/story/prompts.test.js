@@ -121,5 +121,132 @@ describe('prompts', () => {
       expect(() => buildPrompt(6, 'funny')).toThrow();
       expect(() => buildPrompt(-1, 'funny')).toThrow();
     });
+
+    it('defaults to round 1 when round not specified', () => {
+      const withDefault = buildPrompt(1, 'funny');
+      const explicit = buildPrompt(1, 'funny', 1);
+      expect(withDefault.system).toBe(explicit.system);
+      expect(withDefault.user).toBe(explicit.user);
+    });
+  });
+
+  describe('buildPrompt round 2', () => {
+    it('builds a valid prompt for each of the 5 parts', () => {
+      for (let part = 1; part <= 5; part++) {
+        const prompt = buildPrompt(part, 'funny', 2);
+        expect(prompt.system.length).toBeGreaterThan(0);
+        expect(prompt.user.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('builds valid prompts for both styles', () => {
+      for (let part = 1; part <= 5; part++) {
+        const funny = buildPrompt(part, 'funny', 2);
+        const dry = buildPrompt(part, 'dry', 2);
+        expect(funny.system.length).toBeGreaterThan(0);
+        expect(dry.system.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('includes "Clown Native Computing Foundation" in system message', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      expect(prompt.system).toMatch(/Clown Native Computing Foundation/);
+    });
+
+    it('includes gender-neutral constraint for all characters', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      expect(prompt.system).toMatch(/gender.neutral/i);
+      expect(prompt.system).toMatch(/they/i);
+    });
+
+    it('includes word count constraint', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      expect(prompt.system).toMatch(/150/);
+    });
+
+    it('instructs to lead with physical reality', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      expect(prompt.system).toMatch(/physically happening/i);
+    });
+
+    it('changes content based on style parameter', () => {
+      const funny = buildPrompt(1, 'funny', 2);
+      const dry = buildPrompt(1, 'dry', 2);
+      const funnyContent = funny.system + funny.user;
+      const dryContent = dry.system + dry.user;
+      expect(funnyContent).not.toBe(dryContent);
+    });
+
+    it('round 2 content differs from round 1', () => {
+      const r1 = buildPrompt(1, 'funny', 1);
+      const r2 = buildPrompt(1, 'funny', 2);
+      expect(r2.system).not.toBe(r1.system);
+      expect(r2.user).not.toBe(r1.user);
+    });
+
+    it('part 1 mentions circus, tank, and developer', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      const content = prompt.system + ' ' + prompt.user;
+      expect(content).toMatch(/circus/i);
+      expect(content).toMatch(/tank/i);
+      expect(content).toMatch(/developer/i);
+    });
+
+    it('part 2 mentions cannonball, Helm, and service mesh', () => {
+      const prompt = buildPrompt(2, 'funny', 2);
+      const content = prompt.user;
+      expect(content).toMatch(/cannonball/i);
+      expect(content).toMatch(/helm/i);
+      expect(content).toMatch(/service mesh/i);
+    });
+
+    it('part 3 mentions trapeze, Flux, and Kyverno', () => {
+      const prompt = buildPrompt(3, 'funny', 2);
+      const content = prompt.user;
+      expect(content).toMatch(/trapeze/i);
+      expect(content).toMatch(/flux/i);
+      expect(content).toMatch(/kyverno/i);
+    });
+
+    it('part 4 mentions clown car, Kubernetes API, and interfaces', () => {
+      const prompt = buildPrompt(4, 'funny', 2);
+      const content = prompt.user;
+      expect(content).toMatch(/clown car/i);
+      expect(content).toMatch(/kubernetes api/i);
+      expect(content).toMatch(/interface/i);
+    });
+
+    it('part 5 mentions deploy, celebration, and Clown Native Computing Foundation', () => {
+      const prompt = buildPrompt(5, 'funny', 2);
+      const content = prompt.user;
+      expect(content).toMatch(/deploy/i);
+      expect(content).toMatch(/Clown Native Computing Foundation/);
+    });
+
+    it('includes prior context for parts 2-5', () => {
+      for (let part = 2; part <= 5; part++) {
+        const prompt = buildPrompt(part, 'funny', 2);
+        expect(prompt.user).toMatch(/story so far/i);
+      }
+    });
+
+    it('part 1 has no prior context', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      expect(prompt.user).not.toMatch(/story so far/i);
+    });
+
+    it('tracks physical escalation across parts', () => {
+      const p2 = buildPrompt(2, 'funny', 2).user;
+      const p3 = buildPrompt(3, 'funny', 2).user;
+      const p4 = buildPrompt(4, 'funny', 2).user;
+      expect(p2).toMatch(/breath/i);
+      expect(p3).toMatch(/lightheaded/i);
+      expect(p4).toMatch(/panic/i);
+    });
+
+    it('throws for invalid part numbers in round 2', () => {
+      expect(() => buildPrompt(0, 'funny', 2)).toThrow();
+      expect(() => buildPrompt(6, 'funny', 2)).toThrow();
+    });
   });
 });

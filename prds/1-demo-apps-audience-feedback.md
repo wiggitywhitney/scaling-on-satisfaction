@@ -48,7 +48,7 @@ Thomas Vitale owns the platform: Knative, Flagger, OTel Collector (count connect
 
 ### Round 2: Canary Deployment (Model Upgrade)
 
-**Theme**: "Platform Engineer Underwater" (fights a squid)
+**Theme**: "Developer at the Clown Native Computing Foundation Circus"
 
 | Variant | Prompt Style | Model |
 |---------|-------------|-------|
@@ -59,8 +59,20 @@ Thomas Vitale owns the platform: Knative, Flagger, OTel Collector (count connect
 - Better model canary-deployed to small percentage
 - Flagger shifts traffic if better model scores higher
 - Key insight: if cheap model wins, the upgrade isn't worth the cost
+- Protagonist is a developer (not a platform engineer like Round 1)
+- Always spell out "Clown Native Computing Foundation" — never abbreviate. Everywhere one might say "Cloud," say "Clown."
+- No animal acts (no lion taming, elephants, etc.)
+- Gender-neutral throughout — use "they" for the developer, cannonball, trapeze artist(s), clowns. Never assume gender for any character.
 
-**Round 2 Story Beats**: TBD — needs the same detail-level story bible as Round 1 with 5 specific beats, escalating problems, and a satisfying resolution. To be designed before M4.
+**Round 2 Story Beats** (Houdini water tank escape — developer deploys app before air runs out):
+
+The developer is the Houdini act at the Clown Native Computing Foundation circus. They're locked in a glass water tank and must deploy an app before they run out of air. Circus acts happen around the tank — each act coincides with a platform capability that helps the deploy progress. The developer's physical state escalates (running out of breath → lightheaded → panicking → gasping). Platform engineering is the invisible superpower that makes the impossible deploy possible.
+
+1. **Setup** — The developer arrives at the Clown Native Computing Foundation circus. They're introduced as the Houdini act — locked in a glass water tank, must deploy a working app before the air in their lungs runs out. They take a deep breath. The clock starts.
+2. **Human cannonball with a Helm-et (cliffhanger)** — A human cannonball wearing a Helm-et fires across the big top. The developer, underwater, makes progress with Helm charts and service mesh routing — the deploy launches into the cluster. But they're running out of breath. Deploy isn't done yet. Cliffhanger.
+3. **Trapeze artist in Flux (cliffhanger)** — A trapeze artist swings high above — they're in Flux. GitOps pulls the config into sync. The app needs security and compliance — Kyverno is the safety net below, secure and compliant by default. But the developer is getting lightheaded. Still not deployed. Cliffhanger.
+4. **Clown car (cliffhanger)** — A tiny clown car rolls into the ring. An impossible number of clowns pour out — each one offering a different interface to the same Kubernetes API (CLI, UI, API, portal). One API, many interfaces. The developer is panicking now, vision blurring. Almost there.
+5. **Finale — deploy + celebratory circus chaos** — The app deploys. The tank opens. The developer gasps for air as the crowd ROARS. The LLM has creative freedom to describe celebratory circus chaos — over-the-top spectacle, confetti, impossible acts. Must shout out the Clown Native Computing Foundation by name. The platform made the developer look like a superhero.
 
 ### Pacing Per Story Part
 
@@ -188,10 +200,11 @@ Create the two Round 1 variants: same story arc, different prompt styles (dry/ac
 - [x] Single admin page that advances both variants at once (Decision 17)
 
 ### M4: Model Variants (Round 2 Apps)
-Create the two Round 2 variants: same prompt (winning style from Round 1), different models (cheap vs expensive). Build as separate container images.
+Create the two Round 2 variants: same prompt (winning style from Round 1), different models (cheap vs expensive). Circus/Houdini water tank theme. Build as separate container images.
 
-- [ ] App 2a: cheap model with underwater story
-- [ ] App 2b: expensive model with underwater story
+- [x] Round 2 story bible prompts for circus/Houdini beats (Decision 18)
+- [ ] App 2a: cheap model with circus story
+- [ ] App 2b: expensive model with circus story
 - [ ] Same prompt template, configurable model selection
 - [ ] Two container images
 
@@ -245,7 +258,7 @@ Practice the full 25-minute talk with both rounds working.
 | 2026-03-02 | Specific beats: floating servers (Part 2), CI/CD on Earth (Part 3), lonely perfect platform (Part 4), alien developers + alien appreciation (Part 5) | Concrete details ensure continuity across variants and LLM instances |
 | 2026-03-02 | Story bible approach: each part's prompt contains full prior context and detail-level beat specifications | Different LLM instances generate different parts — no conversation memory. Continuity enforced through prompts, not chat history. |
 | 2026-03-02 | Gender-neutral protagonist | Use "they" or "the platform engineer" throughout |
-| 2026-03-02 | Round 2 (underwater) needs same story bible treatment | Design detail-level beats before M4 implementation |
+| 2026-03-02 | ~~Round 2 (underwater) needs same story bible treatment~~ Superseded by Decision 18 (circus/Houdini) | ~~Design detail-level beats before M4 implementation~~ |
 | 2026-03-02 | ~~Built-in 75s timer per part~~ → Presenter-only pacing, no auto-timer | Timer created reading pressure for audience. Speakers control advancement; audience UI polls and auto-loads. M5 scope reduced to multi-variant coordination only. |
 | 2026-03-02 | Story target ~150 words (max 175), physical-reality-first, puns, one metaphor max, moon-specific difficulties | 250 words was too dense for phone reading. Metaphor stacking buried the plot. Lead with what's physically happening before getting clever. |
 | 2026-03-02 | "Houston, we have a problem" banned from system prompt | LLM reaches for this cliche every time. Explicitly banned. |
@@ -258,6 +271,14 @@ Practice the full 25-minute talk with both rounds working.
 | 2026-03-02 | Style variants require separate system prompts AND separate beat descriptions | A single style instruction appended to a shared system prompt is insufficient — the model ignores it when surrounding instructions have comedy cues ("land a joke", "absurdity"). Each variant needs its own complete system prompt and beat descriptions written in the target register. Tested and confirmed: dry beats with academic language produce genuinely formal output; shared beats with a style toggle do not. |
 | 2026-03-02 | Fail-fast on missing ANTHROPIC_API_KEY | Server was starting successfully without an API key and only failing on the first LLM request. Now exits immediately with a clear error. |
 | 2026-03-02 | Dockerfile over Cloud Native Buildpacks for container images | Existing 11-line alpine Dockerfile already follows best practices (non-root, tini, production deps). Alpine images ~100-150MB vs Paketo's Ubuntu-based ~200-300MB. No new tooling dependency. Both produce OCI-compliant images Knative accepts. No reason to switch with a working Dockerfile and a 2-day deadline. |
+| 2026-03-02 | (Decision 18) ~~Round 2 theme: "Platform Engineer Underwater" (fights a squid)~~ → Circus / Houdini water tank at the Clown Native Computing Foundation | "Clown Native Computing Foundation" (CNCF = Clown, not Cloud) is an instant KubeCon laugh. Houdini water tank gives ticking-clock tension. Circus setting provides rich visual comedy and CNCF tool wordplay for model quality differentiation (Round 2). |
+| 2026-03-02 | Round 2 protagonist is a developer, not a platform engineer | Different from Round 1. Developer succeeds because of platform support — the talk's thesis. |
+| 2026-03-02 | Always spell out "Clown Native Computing Foundation" — never abbreviate, never say "Cloud" | The joke only works if you say the full name. Everywhere CNCF appears, it's the Clown Native Computing Foundation. |
+| 2026-03-02 | Round 2 beat structure: Setup → 3 circus acts → Finale. One act per part, clean structure (not overlapping chaos) | Each part pairs one circus act with one platform capability. Cannonball (Helm-et + service mesh), Trapeze (in Flux + Kyverno safety net), Clown car (one K8s API, many interfaces). Finale has LLM creative freedom for celebratory circus chaos. |
+| 2026-03-02 | No animal circus acts | No lion taming, elephants, etc. — cruel to animals. Stick to human/clown/acrobat acts. |
+| 2026-03-02 | Gender-neutral for all Round 2 characters | Use "they" for the developer, cannonball, trapeze artist(s), clowns — every character. Same principle as Round 1's gender-neutral protagonist, extended to the full cast. |
+| 2026-03-02 | Developer physical state escalates across parts | Running out of breath → lightheaded → panicking → gasping for air. Built-in cliffhangers at each part boundary. |
+| 2026-03-02 | ~~Round 2 (underwater) needs same story bible treatment~~ Superseded by Decision 18 | ~~Design detail-level beats before M4 implementation~~ Beats now designed as part of Decision 18. |
 
 ## Research
 
