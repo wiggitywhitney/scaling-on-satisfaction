@@ -1,7 +1,8 @@
 # PRD #1: Demo Apps & Audience Feedback Pipeline
 
 **GitHub Issue**: [#1](https://github.com/wiggitywhitney/scaling-on-satisfaction/issues/1)
-**Status**: In Progress
+**Status**: Complete (Whitney's scope) — 2026-03-03
+**Remaining**: M6/M7 deferred to Thomas's platform integration
 **Priority**: High
 **Talk Date**: March 23, 2026 (Platform Engineering Day EU, 25 minutes)
 **First App Deadline**: March 4, 2026
@@ -157,13 +158,13 @@ The event is parented to the GenAI operation span when possible, or correlated v
 
 ## Success Criteria
 
-- [ ] Audience can load the app on their phone and read a story part
-- [ ] Voting emits correct `gen_ai.evaluation.result` OTel span events
-- [ ] 4 container images build and deploy to Knative (K8s-ready: health probes, graceful shutdown, non-root)
-- [ ] Story continuity preserved when switching between variants
-- [ ] Presenter-controlled pacing works (admin advances, audience auto-loads)
-- [ ] Round 1 and Round 2 demonstrate distinct patterns (A/B vs canary)
-- [ ] Full pipeline works end-to-end: vote → OTel event → Prometheus metric → Flagger traffic shift
+- [x] Audience can load the app on their phone and read a story part
+- [x] Voting emits correct `gen_ai.evaluation.result` OTel span events
+- [x] 4 container images build and deploy to Knative (K8s-ready: health probes, graceful shutdown, non-root)
+- [x] Story continuity preserved when switching between variants
+- [x] Presenter-controlled pacing works (admin advances, audience auto-loads)
+- [x] Round 1 and Round 2 demonstrate distinct patterns (A/B vs canary)
+- [~] Full pipeline works end-to-end: vote → OTel event → Prometheus metric → Flagger traffic shift (deferred: requires Thomas's platform)
 
 ## Milestones
 
