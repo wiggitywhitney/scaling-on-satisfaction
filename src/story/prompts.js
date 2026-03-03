@@ -138,13 +138,19 @@ export function buildPrompt(partNumber, style, round = 1) {
     throw new Error(`Invalid part number: ${partNumber}. Must be between 1 and ${TOTAL_PARTS}.`);
   }
 
-  const roundBeats = BEATS[round] || BEATS[1];
-  const beats = roundBeats[style] || roundBeats.funny;
+  const roundBeats = BEATS[round];
+  if (!roundBeats) {
+    throw new Error(`Invalid round: ${round}. Must be 1 or 2.`);
+  }
+  const beats = roundBeats[style];
+  if (!beats) {
+    throw new Error(`Invalid style: "${style}" for round ${round}. Valid styles: ${Object.keys(roundBeats).join(', ')}.`);
+  }
   const beat = beats[partNumber];
 
   const styleInstruction = round === 2
-    ? (ROUND2_STYLE_INSTRUCTIONS[style] || ROUND2_STYLE_INSTRUCTIONS.funny)
-    : (STYLE_INSTRUCTIONS[style] || STYLE_INSTRUCTIONS.funny);
+    ? ROUND2_STYLE_INSTRUCTIONS[style]
+    : STYLE_INSTRUCTIONS[style];
 
   const shared = round === 2
     ? [

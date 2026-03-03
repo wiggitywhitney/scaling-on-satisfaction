@@ -493,6 +493,8 @@ describe('API routes', () => {
     it('advance forwards to variant URLs', async () => {
       config.variantUrls = ['http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
       });
 
@@ -511,6 +513,8 @@ describe('API routes', () => {
     it('reset forwards to variant URLs', async () => {
       config.variantUrls = ['http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         json: () => Promise.resolve({ currentPart: 0, totalParts: 5 }),
       });
 
@@ -526,9 +530,45 @@ describe('API routes', () => {
       expect(res.body.variants[0].ok).toBe(true);
     });
 
+    it('forwards admin secret to variant URLs', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      config.adminSecret = 'test-secret';
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance?secret=test-secret', { method: 'POST' });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://app-1b:8080/api/admin/advance?secret=test-secret',
+        { method: 'POST' }
+      );
+      config.adminSecret = '';
+    });
+
+    it('reports variant response status accurately', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ error: 'Unauthorized' }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.body.variants[0].ok).toBe(false);
+      expect(res.body.variants[0].status).toBe(401);
+    });
+
     it('forwards to multiple variant URLs', async () => {
       config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
       });
 
@@ -556,6 +596,8 @@ describe('API routes', () => {
     it('strips trailing slash from variant URLs', async () => {
       config.variantUrls = ['http://app-1b:8080/'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
       });
 

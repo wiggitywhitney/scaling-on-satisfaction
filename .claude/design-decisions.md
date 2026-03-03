@@ -1,8 +1,6 @@
 # Design Decisions & Anti-Regression Guide
 **Generated:** 2026-03-02 13:07
-**Project:** /Users/whitney.lee/Documents/Repositories/scaling-on-satisfaction
-**Session:** 938359a3-eddf-45a1-aaf1-4f65b080aa41
-**Compaction trigger:** auto
+**Project:** scaling-on-satisfaction
 
 ## CURRENT APPROACH
 
@@ -38,7 +36,7 @@ Building a mobile-friendly Node.js/Express web app that serves 5-part GenAI stor
 
 5. **Per-user unique stories** — Each audience member gets their own LLM-generated story (not shared). Cached per session so refresh doesn't re-generate.
 
-6. **Multi-variant admin in M3** — Currently single-app admin. In M3 (when two Round 1 variants exist), admin page will POST to all variant URLs via `VARIANT_URLS` config. Not needed yet.
+6. **Multi-variant admin (M5)** — Admin page POSTs to all variant URLs via `VARIANT_URLS` config. Single "Advance" button sends to all variants. Status display shows each variant's current part. Shared-secret auth protects mutations.
 
 7. **Port 8080 default** — Knative injects `$PORT` and defaults to 8080. App reads `PORT` env var; default changed from 3000 to 8080.
 

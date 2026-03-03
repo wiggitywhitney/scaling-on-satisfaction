@@ -30,7 +30,7 @@ function showVoteButtons(existingVote) {
 
 function hideVoteButtons() {
   voteButtons.classList.remove('active');
-  voteBtns.forEach((btn) => btn.classList.remove('selected', 'dimmed'));
+  voteBtns.forEach((btn) => { btn.classList.remove('selected', 'dimmed'); });
 }
 
 async function submitVote(vote) {

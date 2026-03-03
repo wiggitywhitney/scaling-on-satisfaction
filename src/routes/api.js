@@ -131,14 +131,17 @@ export function createApiRouter(generator) {
   return router;
 }
 
-async function forwardToVariants(path) {
+async function forwardToVariants(path, secret) {
   const results = [];
   for (const baseUrl of config.variantUrls) {
-    const url = `${baseUrl.replace(/\/$/, '')}/api/admin/${path}`;
+    let url = `${baseUrl.replace(/\/$/, '')}/api/admin/${path}`;
+    if (secret) {
+      url += `?secret=${encodeURIComponent(secret)}`;
+    }
     try {
       const res = await fetch(url, { method: 'POST' });
       const data = await res.json();
-      results.push({ url: baseUrl, ok: true, ...data });
+      results.push({ url: baseUrl, ok: res.ok, status: res.status, ...data });
     } catch (err) {
       results.push({ url: baseUrl, ok: false, error: err.message });
     }
@@ -161,14 +164,14 @@ export function createAdminRouter() {
       return res.status(400).json({ error: 'Already at the last part', currentPart });
     }
     currentPart++;
-    const variants = await forwardToVariants('advance');
+    const variants = await forwardToVariants('advance', req.query.secret);
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
 
   router.post('/reset', requireSecret, async (req, res) => {
     currentPart = 0;
     sessions.clear();
-    const variants = await forwardToVariants('reset');
+    const variants = await forwardToVariants('reset', req.query.secret);
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
 

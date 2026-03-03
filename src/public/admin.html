@@ -122,35 +122,45 @@
     const secretQuery = secret ? `?secret=${encodeURIComponent(secret)}` : '';
 
     async function refresh() {
-      const res = await fetch('/api/admin/status');
-      const data = await res.json();
-      mainCurrentPart = data.currentPart;
-      status.textContent = `${data.currentPart} / ${data.totalParts}`;
-      btnAdvance.disabled = data.currentPart >= data.totalParts;
-      info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
+      try {
+        const res = await fetch('/api/admin/status');
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const data = await res.json();
+        mainCurrentPart = data.currentPart;
+        status.textContent = `${data.currentPart} / ${data.totalParts}`;
+        btnAdvance.disabled = data.currentPart >= data.totalParts;
+        info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
+      } catch {
+        info.textContent = 'Status unavailable';
+      }
     }
 
     async function refreshVariants() {
-      const res = await fetch('/api/admin/variant-status');
-      const data = await res.json();
-      if (!data.variants || data.variants.length === 0) {
-        variantsEl.style.display = 'none';
-        return;
-      }
-      variantsEl.style.display = '';
-      variantsEl.innerHTML = '<h2>Variants</h2>' + data.variants.map(v => {
-        if (!v.ok) {
-          return `<div class="variant-card">
-            <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">error: ${esc(v.error)}</div></div>
-            <div class="variant-part variant-err">ERR</div>
-          </div>`;
+      try {
+        const res = await fetch('/api/admin/variant-status');
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const data = await res.json();
+        if (!data.variants || data.variants.length === 0) {
+          variantsEl.style.display = 'none';
+          return;
         }
-        const syncClass = v.currentPart === mainCurrentPart ? 'variant-sync' : 'variant-lag';
-        return `<div class="variant-card">
-          <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">${v.sessions} session${v.sessions !== 1 ? 's' : ''}</div></div>
-          <div class="variant-part ${syncClass}">${v.currentPart} / ${v.totalParts}</div>
-        </div>`;
-      }).join('');
+        variantsEl.style.display = '';
+        variantsEl.innerHTML = '<h2>Variants</h2>' + data.variants.map(v => {
+          if (!v.ok) {
+            return `<div class="variant-card">
+              <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">error: ${esc(v.error)}</div></div>
+              <div class="variant-part variant-err">ERR</div>
+            </div>`;
+          }
+          const syncClass = v.currentPart === mainCurrentPart ? 'variant-sync' : 'variant-lag';
+          return `<div class="variant-card">
+            <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">${v.sessions} session${v.sessions !== 1 ? 's' : ''}</div></div>
+            <div class="variant-part ${syncClass}">${v.currentPart} / ${v.totalParts}</div>
+          </div>`;
+        }).join('');
+      } catch {
+        variantsEl.innerHTML = '<h2>Variants</h2><div class="variant-card"><div>Status unavailable</div></div>';
+      }
     }
 
     function esc(s) {

@@ -82,6 +82,16 @@ describe('generator', () => {
       .rejects.toThrow('API rate limit exceeded');
   });
 
+  it('throws when response has no text block', async () => {
+    mockClient.messages.create.mockResolvedValue({
+      id: 'msg_no_text',
+      content: [{ type: 'tool_use', id: 'tool_1', name: 'test' }],
+    });
+
+    await expect(generator.generatePart(1, 'funny', 'claude-sonnet-4-20250514'))
+      .rejects.toThrow('did not contain a text block');
+  });
+
   it('passes the correct style through to prompt', async () => {
     mockClient.messages.create.mockResolvedValue({
       id: 'msg_dry',

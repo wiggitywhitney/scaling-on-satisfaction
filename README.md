@@ -142,7 +142,7 @@ Each vote emits a span event with these attributes:
 | `gen_ai.evaluation.score.value` | `1.0` or `0.0` |
 | `gen_ai.response.id` | ID of the generation being evaluated |
 
-The event is parented to the GenAI operation span.
+The evaluation span is linked to the GenAI operation span via span links.
 
 ### Multi-Variant Admin Coordination
 

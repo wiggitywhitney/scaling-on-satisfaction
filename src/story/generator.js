@@ -26,19 +26,26 @@ export function createGenerator(client) {
             messages: [{ role: 'user', content: prompt.user }],
           });
 
+          const textBlock = response?.content?.find(
+            (block) => block?.type === 'text' && typeof block.text === 'string'
+          );
+          if (!textBlock) {
+            throw new Error('Anthropic response did not contain a text block');
+          }
+
           span.setAttribute('gen_ai.response.id', response.id);
-          span.end();
 
           return {
-            text: response.content[0].text,
+            text: textBlock.text,
             responseId: response.id,
             spanContext: span.spanContext(),
           };
         } catch (error) {
           span.recordException(error);
           span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-          span.end();
           throw error;
+        } finally {
+          span.end();
         }
       });
     },

@@ -124,6 +124,16 @@ describe('prompts', () => {
       expect(() => buildPrompt(-1, 'funny')).toThrow();
     });
 
+    it('throws for invalid round', () => {
+      expect(() => buildPrompt(1, 'funny', 3)).toThrow(/Invalid round/);
+      expect(() => buildPrompt(1, 'funny', 0)).toThrow(/Invalid round/);
+    });
+
+    it('throws for invalid style', () => {
+      expect(() => buildPrompt(1, 'nonexistent', 1)).toThrow(/Invalid style/);
+      expect(() => buildPrompt(1, 'dramatic', 2)).toThrow(/Invalid style/);
+    });
+
     it('defaults to round 1 when round not specified', () => {
       const withDefault = buildPrompt(1, 'funny');
       const explicit = buildPrompt(1, 'funny', 1);
