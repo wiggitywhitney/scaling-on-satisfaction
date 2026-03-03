@@ -224,6 +224,7 @@ End-to-end testing on Thomas's Knative + Flagger platform.
 - [ ] Count connector produces Prometheus metrics
 - [ ] Flagger reads metrics and shifts traffic
 - [ ] Full round plays through successfully
+- [ ] README: project overview, dev setup, build images, run locally (`/write-docs`)
 
 ### M7: Datadog Dashboards
 Create dashboards showing satisfaction scores, traffic split, and Flagger decisions.
@@ -231,14 +232,6 @@ Create dashboards showing satisfaction scores, traffic split, and Flagger decisi
 - [ ] Satisfaction score by variant over time
 - [ ] Traffic split visualization
 - [ ] Flagger decision log
-
-### M8: Talk Rehearsal
-Practice the full 25-minute talk with both rounds working.
-
-- [ ] Both rounds complete within time budget
-- [ ] Story pacing feels natural
-- [ ] Dashboard reveals work at the right moments
-- [ ] Fallback plan if something breaks live
 
 ## Decision Log
 
