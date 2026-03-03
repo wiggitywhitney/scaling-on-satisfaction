@@ -1,3 +1,5 @@
+// ABOUTME: Story generation via Anthropic SDK with OTel-traced LLM calls
+// ABOUTME: Creates a generator that produces story parts using the story bible approach
 import { buildPrompt } from './prompts.js';
 import { getTracer } from '../telemetry.js';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';

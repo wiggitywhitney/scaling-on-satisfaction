@@ -1,3 +1,5 @@
+// ABOUTME: Story bible prompts for Round 1 (moon) and Round 2 (circus) variants
+// ABOUTME: Each part's prompt encodes full prior context and detail-level beat specs
 export const TOTAL_PARTS = 5;
 
 const STYLE_INSTRUCTIONS = {

@@ -1,3 +1,5 @@
+// ABOUTME: Client-side audience UI that polls for story parts and handles voting
+// ABOUTME: Auto-loads new parts when presenter advances, sends thumbs-up/down votes
 const POLL_INTERVAL_MS = 2000;
 
 let displayedPart = 0;

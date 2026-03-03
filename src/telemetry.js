@@ -1,3 +1,5 @@
+// ABOUTME: OTel instrumentation for gen_ai.evaluation.result span events
+// ABOUTME: Emits thumbs-up/down votes as OTel events correlated to generation spans
 import { trace, SpanKind } from '@opentelemetry/api';
 
 const TRACER_NAME = 'scaling-on-satisfaction';

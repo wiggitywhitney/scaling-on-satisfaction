@@ -1,3 +1,5 @@
+// ABOUTME: Express app factory with static file serving, API routes, and admin routes
+// ABOUTME: Provides createApp() returning the configured app and shutdown handler
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'node:url';

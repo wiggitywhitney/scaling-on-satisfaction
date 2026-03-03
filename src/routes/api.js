@@ -1,3 +1,5 @@
+// ABOUTME: API routes for story delivery, voting, and presenter admin controls
+// ABOUTME: Handles story generation, OTel vote events, and multi-variant advancement
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { TOTAL_PARTS } from '../story/prompts.js';

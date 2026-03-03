@@ -1,3 +1,5 @@
+// ABOUTME: App configuration loaded from environment variables
+// ABOUTME: Covers port, round, variant style/model, API keys, and admin settings
 function loadConfig() {
   const variantUrls = process.env.VARIANT_URLS
     ? process.env.VARIANT_URLS.split(',').map(u => u.trim()).filter(Boolean)
