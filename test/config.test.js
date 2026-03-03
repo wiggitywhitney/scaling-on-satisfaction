@@ -1,3 +1,5 @@
+// ABOUTME: Tests for environment-based app configuration
+// ABOUTME: Verifies defaults, overrides, and variant URL/label parsing
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('config', () => {

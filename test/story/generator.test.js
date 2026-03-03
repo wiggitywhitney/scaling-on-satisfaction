@@ -1,3 +1,5 @@
+// ABOUTME: Tests for the Anthropic SDK story generator
+// ABOUTME: Verifies LLM call contract, prompt construction, and error handling
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockSpan = {

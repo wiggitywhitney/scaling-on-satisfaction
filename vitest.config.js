@@ -1,3 +1,4 @@
+// ABOUTME: Vitest test runner configuration
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({

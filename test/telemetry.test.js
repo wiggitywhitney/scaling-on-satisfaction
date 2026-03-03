@@ -1,3 +1,5 @@
+// ABOUTME: Tests for OTel telemetry instrumentation
+// ABOUTME: Verifies gen_ai.evaluation.result span events with correct attributes
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@opentelemetry/api', () => {

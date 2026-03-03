@@ -1,3 +1,5 @@
+// ABOUTME: Tests for health endpoints (/healthz, /readyz) and graceful shutdown
+// ABOUTME: Verifies liveness, readiness, and SIGTERM drain behavior
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import http from 'node:http';
 import { createApp } from '../src/app.js';

@@ -1,3 +1,5 @@
+// ABOUTME: Tests for story bible prompt construction across Round 1 and Round 2 variants
+// ABOUTME: Verifies beat content, style instructions, and continuity details in prompts
 import { describe, it, expect } from 'vitest';
 import { buildPrompt, TOTAL_PARTS } from '../../src/story/prompts.js';
 
@@ -84,7 +86,7 @@ describe('prompts', () => {
       const prompt = buildPrompt(3, 'funny');
       const content = prompt.user;
       expect(content).toMatch(/ci.cd|pipeline|build/i);
-      expect(content).toMatch(/earth|384.000|distance|delay/i);
+      expect(content).toMatch(/earth|384[,.]?000|distance|delay/i);
     });
 
     it('part 4 requires solving both problems and loneliness', () => {

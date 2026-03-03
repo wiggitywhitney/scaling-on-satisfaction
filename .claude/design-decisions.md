@@ -78,20 +78,16 @@ Building a mobile-friendly Node.js/Express web app that serves 5-part GenAI stor
 
 ## CURRENT STATE
 
-**Completed (committed):**
-- M1 core story app: Express server, Anthropic SDK generator, 5-part story bible, mobile UI, welcome screen, presenter admin page, Dockerfile, 44 tests passing
-- PRD decision log has 10 entries (Decisions 10-19)
-- Commit: `bf30e99 feat(prd-1): implement M1 core story app`
+**PRD #1 Complete (Whitney's scope)** — All milestones M1-M5 implemented and tested. M6/M7 deferred to Thomas's platform integration.
 
-**Completed but uncommitted:**
-- PRD updates: K8s readiness decisions added (Decisions 18-19), M1 checklist expanded to 11 items (6 complete, 5 new K8s items pending)
-- The user invoked `/prd-update-progress` to commit the PRD decision updates but it was interrupted
+**Implemented milestones:**
+- M1: Core story app with K8s readiness (health endpoints, graceful shutdown, non-root Dockerfile)
+- M2: Voting + OTel instrumentation (`gen_ai.evaluation.result` span events)
+- M3: Round 1 prompt variants (dry/academic vs funny/engaging moon story)
+- M4: Round 2 model variants (Haiku vs Opus circus/Houdini story)
+- M5: Multi-variant admin with status display and shared-secret auth
+- README with project overview, dev setup, and build instructions
 
-**Remaining M1 work (5 items):**
-1. `GET /healthz` endpoint (liveness — simple 200 OK)
-2. `GET /readyz` endpoint (readiness — 503 during shutdown)
-3. SIGTERM graceful shutdown handler
-4. Default port changed to 8080
-5. Dockerfile hardening (non-root user, tini for PID 1)
-
-**Remaining milestones (M2-M8):** Not started. Next after M1 K8s items would be determined by `/prd-next`.
+**Deferred (requires Thomas's platform):**
+- M6: Integration testing on Knative + Flagger + OTel Collector
+- M7: Datadog dashboards for satisfaction metrics

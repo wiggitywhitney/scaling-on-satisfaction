@@ -1,3 +1,5 @@
+// ABOUTME: Tests for API routes — story delivery, voting, and admin controls
+// ABOUTME: Verifies story generation flow, OTel vote events, and multi-variant admin
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
