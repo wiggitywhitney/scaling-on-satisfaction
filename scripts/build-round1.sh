@@ -4,8 +4,8 @@
 set -euo pipefail
 
 # Build Round 1 variant images: dry (1a) and funny (1b)
-# Usage: ./scripts/build-round1.sh [registry]
-# Example: ./scripts/build-round1.sh ghcr.io/wiggitywhitney
+# Usage: ./scripts/build-round1.sh [registry_prefix] [tag]
+# Example: ./scripts/build-round1.sh wiggitywhitney/story-app latest
 
 REGISTRY="${1:-story-app}"
 TAG="${2:-latest}"

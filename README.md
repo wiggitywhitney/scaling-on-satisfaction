@@ -81,9 +81,12 @@ docker run -p 8080:8080 \
 Run a Round 1 pair with coordinated admin controls:
 
 ```bash
+# Create a shared network for container-name DNS resolution
+docker network create story-net
+
 # Start both variants
-docker run -d -p 8081:8080 -e ANTHROPIC_API_KEY --name app-1a wiggitywhitney/story-app-1a:latest
-docker run -d -p 8082:8080 -e ANTHROPIC_API_KEY --name app-1b \
+docker run -d --network story-net -p 8081:8080 -e ANTHROPIC_API_KEY --name app-1a wiggitywhitney/story-app-1a:latest
+docker run -d --network story-net -p 8082:8080 -e ANTHROPIC_API_KEY --name app-1b \
   -e VARIANT_URLS=http://app-1a:8080 \
   wiggitywhitney/story-app-1b:latest
 

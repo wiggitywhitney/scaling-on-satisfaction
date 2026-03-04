@@ -404,33 +404,41 @@ describe('API routes', () => {
 
   describe('GET /api/story/:part generation delay', () => {
     it('delays response when MIN_GENERATION_DELAY_MS is set and generation is fast', async () => {
+      const previousDelay = config.minGenerationDelayMs;
       config.minGenerationDelayMs = 200;
-      const app = buildApp(mockGenerator);
-      await request(app, '/api/admin/advance', { method: 'POST' });
+      try {
+        const app = buildApp(mockGenerator);
+        await request(app, '/api/admin/advance', { method: 'POST' });
 
-      const start = Date.now();
-      await request(app, '/api/story/1');
-      const elapsed = Date.now() - start;
+        const start = Date.now();
+        await request(app, '/api/story/1');
+        const elapsed = Date.now() - start;
 
-      expect(elapsed).toBeGreaterThanOrEqual(180); // allow small timing tolerance
-      config.minGenerationDelayMs = 0;
+        expect(elapsed).toBeGreaterThanOrEqual(180); // allow small timing tolerance
+      } finally {
+        config.minGenerationDelayMs = previousDelay;
+      }
     });
 
     it('does not delay cached responses', async () => {
+      const previousDelay = config.minGenerationDelayMs;
       config.minGenerationDelayMs = 200;
-      const app = buildApp(mockGenerator);
-      await request(app, '/api/admin/advance', { method: 'POST' });
+      try {
+        const app = buildApp(mockGenerator);
+        await request(app, '/api/admin/advance', { method: 'POST' });
 
-      const res1 = await request(app, '/api/story/1');
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
+        const res1 = await request(app, '/api/story/1');
+        const cookie = res1.headers['set-cookie'][0].split(';')[0];
+        const sessionId = cookie.split('=')[1];
 
-      const start = Date.now();
-      await request(app, '/api/story/1', { cookies: { sessionId } });
-      const elapsed = Date.now() - start;
+        const start = Date.now();
+        await request(app, '/api/story/1', { cookies: { sessionId } });
+        const elapsed = Date.now() - start;
 
-      expect(elapsed).toBeLessThan(100);
-      config.minGenerationDelayMs = 0;
+        expect(elapsed).toBeLessThan(100);
+      } finally {
+        config.minGenerationDelayMs = previousDelay;
+      }
     });
   });
 
@@ -774,6 +782,7 @@ describe('API routes', () => {
     it('fetches status from each variant URL', async () => {
       config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve({ currentPart: 2, totalParts: 5, sessions: 10 }),
       });
 
@@ -798,6 +807,7 @@ describe('API routes', () => {
       config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
       config.variantLabels = ['Round 1 Funny', 'Round 1 Dry'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 5 }),
       });
 
@@ -811,6 +821,7 @@ describe('API routes', () => {
     it('auto-generates label from variant style and round when no label configured', async () => {
       config.variantUrls = ['http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 3, style: 'funny', round: 1 }),
       });
 
@@ -823,6 +834,7 @@ describe('API routes', () => {
     it('falls back to URL when no label and variant has no style/round', async () => {
       config.variantUrls = ['http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 3 }),
       });
 
@@ -848,6 +860,7 @@ describe('API routes', () => {
     it('strips trailing slash from variant URLs', async () => {
       config.variantUrls = ['http://app-1b:8080/'];
       global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 2 }),
       });
 

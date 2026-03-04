@@ -62,10 +62,7 @@ describe('prompts', () => {
 
     it('does not require bridging sentence for part 1', () => {
       const prompt = buildPrompt(1, 'funny');
-      // Part 1 has no prior part to bridge from, so the bridging
-      // instruction should be conditional or part 1 should not contain it
-      // The instruction applies to "parts after the first"
-      // This is tested via the prompt content
+      expect(prompt.system).toMatch(/for parts after the first/i);
     });
 
     it('instructs to lead with physical reality', () => {
@@ -196,6 +193,7 @@ describe('prompts', () => {
     it('limits similes in round 2 funny style to one per part', () => {
       const prompt = buildPrompt(1, 'funny', 2);
       expect(prompt.system).toMatch(/simile/i);
+      expect(prompt.system).toMatch(/one per part/i);
     });
 
     it('requires bridging sentence for round 2 parts 2-5', () => {

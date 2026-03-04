@@ -209,6 +209,9 @@ export function createAdminRouter() {
       const url = `${baseUrl.replace(/\/$/, '')}/api/admin/status`;
       try {
         const fetchRes = await fetch(url);
+        if (!fetchRes.ok) {
+          throw new Error(`status ${fetchRes.status}`);
+        }
         const data = await fetchRes.json();
         const label = explicitLabel
           || (data.style ? `Round ${data.round} ${data.style.charAt(0).toUpperCase() + data.style.slice(1)}` : baseUrl);
