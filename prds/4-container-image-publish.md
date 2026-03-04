@@ -1,7 +1,7 @@
 # PRD #4: Build, Verify, and Push Container Images to Docker Hub
 
 **GitHub Issue**: [#4](https://github.com/wiggitywhitney/scaling-on-satisfaction/issues/4)
-**Status**: In Progress
+**Status**: Complete
 **Priority**: High
 **Depends On**: PRD #1 (complete)
 
@@ -72,16 +72,16 @@ Run a Round 1 pair (1a + 1b) simultaneously. One variant acts as coordinator wit
 ### M5: Push to Docker Hub and Update README
 Push all 4 verified images and add pull instructions to README.
 
-- [ ] `docker push` all 4 images
-- [ ] README updated with image names, pull commands, and run instructions for Thomas
-- [ ] Thomas can `docker pull` and run any image
+- [x] `docker push` all 4 images
+- [x] README updated with image names, pull commands, and run instructions for Thomas
+- [x] Thomas can `docker pull` and run any image
 
 ## Success Criteria
 
 - [x] All 4 images build, run, and generate stories correctly
 - [x] Admin panel works for both single and paired variants
-- [ ] Images are pullable from Docker Hub
-- [ ] README documents how Thomas should pull and deploy the images
+- [x] Images are pullable from Docker Hub
+- [x] README documents how Thomas should pull and deploy the images
 
 ## Decision Log
 

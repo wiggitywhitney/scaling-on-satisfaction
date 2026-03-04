@@ -43,6 +43,26 @@ Each audience member loads the app on their phone. The presenter advances the st
 5. The OTel Collector counts votes per variant as Prometheus metrics
 6. Flagger reads the metrics and shifts Knative traffic toward the winner
 
+## Container Images
+
+Pre-built images are available on Docker Hub:
+
+| Image | Round | Style | Model |
+|-------|-------|-------|-------|
+| `wiggitywhitney/story-app-1a:latest` | 1 | Dry, academic | Claude Sonnet 4 |
+| `wiggitywhitney/story-app-1b:latest` | 1 | Funny, engaging | Claude Sonnet 4 |
+| `wiggitywhitney/story-app-2a:latest` | 2 | Funny (configurable) | Claude Haiku 4.5 |
+| `wiggitywhitney/story-app-2b:latest` | 2 | Funny (configurable) | Claude Opus 4.6 |
+
+Pull all images:
+
+```bash
+docker pull wiggitywhitney/story-app-1a:latest
+docker pull wiggitywhitney/story-app-1b:latest
+docker pull wiggitywhitney/story-app-2a:latest
+docker pull wiggitywhitney/story-app-2b:latest
+```
+
 ## Prerequisites
 
 - An [Anthropic API key](https://console.anthropic.com/)
@@ -50,13 +70,27 @@ Each audience member loads the app on their phone. The presenter advances the st
 
 ## Running Locally
 
+Run a single variant:
+
 ```bash
 docker run -p 8080:8080 \
   -e ANTHROPIC_API_KEY \
-  story-app-1b:latest
+  wiggitywhitney/story-app-1b:latest
 ```
 
-This assumes `ANTHROPIC_API_KEY` is already set in your shell. The audience UI is at `http://localhost:8080` and presenter controls are at `/admin`.
+Run a Round 1 pair with coordinated admin controls:
+
+```bash
+# Start both variants
+docker run -d -p 8081:8080 -e ANTHROPIC_API_KEY --name app-1a wiggitywhitney/story-app-1a:latest
+docker run -d -p 8082:8080 -e ANTHROPIC_API_KEY --name app-1b \
+  -e VARIANT_URLS=http://app-1a:8080 \
+  wiggitywhitney/story-app-1b:latest
+
+# Advance/reset both from app-1b's admin at http://localhost:8082/admin
+```
+
+This assumes `ANTHROPIC_API_KEY` is already set in your shell. The audience UI is at `http://localhost:<port>` and presenter controls are at `/admin`.
 
 ## Environment Variables
 
