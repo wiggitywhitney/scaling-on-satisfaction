@@ -109,4 +109,17 @@ describe('config', () => {
     const { default: config } = await import('../src/config.js?' + Date.now());
     expect(config.adminSecret).toBe('my-secret-123');
   });
+
+  it('defaults minGenerationDelayMs to 0', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.minGenerationDelayMs).toBe(0);
+  });
+
+  it('reads MIN_GENERATION_DELAY_MS from environment', async () => {
+    process.env.MIN_GENERATION_DELAY_MS = '3000';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.minGenerationDelayMs).toBe(3000);
+  });
 });

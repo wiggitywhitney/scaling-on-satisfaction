@@ -1,91 +1,95 @@
 # Design Decisions & Anti-Regression Guide
-**Generated:** 2026-03-02 13:07
-**Project:** scaling-on-satisfaction
+**Generated:** 2026-03-03 08:16
+**Project:** /Users/whitney.lee/Documents/Repositories/scaling-on-satisfaction
+**Session:** 3e001eaa-e66c-4655-81d7-ded8bb98400a
+**Compaction trigger:** manual
+
+Now I have all the context. Here's the document:
+
+---
 
 ## CURRENT APPROACH
 
-Building a mobile-friendly Node.js/Express web app that serves 5-part GenAI stories about a "Platform Engineer on the Moon." The app uses the Anthropic SDK to generate story parts from a deterministic story bible (hardcoded prior context, not chained LLM output). Presenter controls pacing via an admin page (`/admin`); audience sees a welcome screen until the presenter advances. Each variant runs as its own container image with admin baked in. 4 container images total (2 per demo round), delivered to Thomas Vitale for Knative deployment.
+**PRD #4: Build, Verify, and Push Container Images to Docker Hub**
 
-**Stack**: JavaScript (not TypeScript), ES modules, Express, Anthropic SDK, OTel API only, Vitest for tests, Docker for containers.
+Build 4 container images using existing build scripts (`scripts/build-round1.sh`, `scripts/build-round2.sh`), verify each with human review, test admin panel in single + paired configurations, push to Docker Hub under `wiggitywhitney/`, and update README for Thomas.
 
-**Architecture**: `createGenerator(client)` and `createApiRouter(generator)` use dependency injection. Per-user sessions via cookie-based UUID with in-memory Map store. Server tracks `currentPart` globally; audience UI polls `/api/story/status` every 2s.
+- Build scripts accept a registry prefix argument: `./scripts/build-round1.sh wiggitywhitney/story-app`
+- Docker Hub push uses Whitney's existing Docker CLI auth (already configured to push to `wiggitywhitney`)
+- Images are tagged `:latest` — 4 images total: `story-app-1a`, `story-app-1b`, `story-app-2a`, `story-app-2b`
+- Human verification required for every image before pushing
+- Admin panel must be verified in two configurations: single variant, then paired variants
+
+**Workflow**: PRD started → need to commit PRD to main → create feature branch `feature/prd-4-container-image-publish` → work through milestones M1-M5 → PR → merge → close issue #4.
 
 ## REJECTED APPROACHES — DO NOT SUGGEST THESE
 
-- **[REJECTED] Countdown timer for pacing**: Originally implemented a 60-second timer per story part with auto-advance. Removed entirely — replaced with presenter-only advancement. The speakers need to control pacing, not a timer. Do not re-add any timer-based pacing.
-- **[REJECTED] TypeScript**: Project constraint is JavaScript only. This is a demo, not a production app. Do not convert to or suggest TypeScript.
-- **[REJECTED] Chained LLM output for story continuity**: Prior context between story parts is hardcoded from the story bible, NOT taken from previous LLM responses. This ensures each part's prompt is fully deterministic and different variant instances can generate any part independently. Do not chain LLM outputs.
-- **[REJECTED] Streaming LLM responses**: Non-streaming was chosen. Story parts are short (~150 words) so streaming adds complexity without benefit.
-- **[REJECTED] Separate admin service/app**: Admin is baked into each app image, not a standalone service. The `/admin` page lives in the same Express server.
-- **[REJECTED] Separate PRD for K8s readiness**: K8s readiness items (health endpoints, graceful shutdown, Dockerfile hardening) were added to PRD #1's M1 milestone, not a separate PRD.
-- **[REJECTED] npm start in Dockerfile CMD**: Must use `node src/index.js` directly — npm swallows exit signals (SIGTERM).
-- **[REJECTED] "Houston, we have a problem" in stories**: Explicitly banned in the system prompt. The LLM reaches for this cliché every time.
-- **[REJECTED] Long/dense story parts (~250 words)**: Original prompts produced ~250 words of dense metaphor-stacked text. Reduced to ~150 words target, 175 hard cap, with "one extended metaphor max" rule.
-- **[REJECTED] Admin routes at `/admin/*`**: Initially admin API was at `/admin/advance`, `/admin/reset` — this conflicted with serving `admin.html` at `/admin`. API routes moved to `/api/admin/*` so `/admin` serves the HTML page.
-- **[REJECTED] Dependency checks in liveness probes**: K8s best practice — liveness should be simple 200 OK. If liveness checks external deps and they're down, K8s restart-loops your pods.
+- **[REJECTED] ghcr.io (GitHub Container Registry)**: User explicitly said "Don't push to ghcr.io - to my dockerhub instead." Docker CLI already pushes to Docker Hub. No reason to add ghcr.io auth.
+- **[REJECTED] Automated verification only**: User explicitly requested "I want human verification for each image." Each image has a different style/model combo that needs visual confirmation. Automated tests cover code correctness; human checks the experience.
+- **[REJECTED] Batch verification (verify all images at once)**: User wants to see admin panel work "for just one and then for the pair" — sequential verification, not batch.
+- **[REJECTED] TypeScript**: Project constraint is JavaScript only. Not TypeScript.
+- **[REJECTED] Running tests locally during completion workflow**: Tests run in CI pipeline. PRD skill explicitly states "Do not run tests locally during the completion workflow."
 
 ## KEY DESIGN DECISIONS
 
-1. **Presenter-only pacing** — No timer. Presenter hits "Advance" on `/admin` page. Audience UI polls every 2s and auto-loads new parts when available. Server returns 403 for parts beyond `currentPart`.
+1. **Docker Hub registry target** — `wiggitywhitney/story-app-{1a,1b,2a,2b}:latest`. Whitney's Docker CLI is already authenticated to Docker Hub. (PRD Decision Log, 2026-03-03)
 
-2. **~150-word target, 175 hard cap** — Story parts must be short for 60-second phone reading. Physical-reality-first instruction: lead with what is physically happening before getting clever.
+2. **Human verification per image** — Each image runs individually with API key injected. Human checks: container starts, healthz returns 200, audience UI loads, admin panel loads, story generation works, vote buttons work. (PRD Decision Log, 2026-03-03)
 
-3. **Story structure: Parts 2-3 cliffhangers, Part 4 solves both** — Parts 2 and 3 present problems (floating servers, speed-of-light CI/CD) and end on unsolved cliffhangers. Part 4 reveals creative solutions to both problems AND carries the emotional weight of loneliness.
+3. **Admin panel verified in two stages** — First single variant (one image running), then paired variants (two images running with `VARIANT_URLS` coordination).
 
-4. **Welcome screen** — Audience sees "Welcome to The Story Generator! Your story will begin soon." until presenter advances to part 1.
+4. **Build scripts already exist** — `scripts/build-round1.sh` and `scripts/build-round2.sh` accept registry prefix as first argument. No new build tooling needed.
 
-5. **Per-user unique stories** — Each audience member gets their own LLM-generated story (not shared). Cached per session so refresh doesn't re-generate.
+5. **Image matrix is fixed** — 4 specific combinations defined in PRD. Round 1: dry+sonnet-4, funny+sonnet-4. Round 2: funny+haiku-4.5, funny+opus-4.6. Round 2 style defaults to "funny" but will be set to winning style during live demo.
 
-6. **Multi-variant admin (M5)** — Admin page POSTs to all variant URLs via `VARIANT_URLS` config. Single "Advance" button sends to all variants. Status display shows each variant's current part. Shared-secret auth protects mutations.
+6. **API key via vals** — Images need `ANTHROPIC_API_KEY` at runtime. Injected via `vals exec -f .vals.yaml` or `-e` flag on `docker run`.
 
-7. **Port 8080 default** — Knative injects `$PORT` and defaults to 8080. App reads `PORT` env var; default changed from 3000 to 8080.
+7. **PRD committed to main first, then feature branch** — PRD file was created on main. The `/prd-start` workflow commits the PRD docs to main (with `[skip ci]`), then creates the feature branch for implementation work.
 
-8. **K8s readiness requirements in M1** — 5 new items: `GET /healthz` (liveness, simple 200), `GET /readyz` (readiness, 503 during shutdown), SIGTERM graceful shutdown, port 8080 default, Dockerfile hardening (non-root user, tini for PID 1).
-
-9. **OTel API only in app code** — App depends on `@opentelemetry/api` (lightweight no-op). The deployer's platform provides the SDK. Never add SDK, instrumentation packages, or auto-instrumentation to this repo.
-
-10. **Funny style with puns on tech-meets-lunar-reality** — System prompt specifies puns/wordplay on technical terminology meeting lunar reality. One extended metaphor max per part. Moon-specific physics must be explicit (1/6 gravity, no atmosphere, spacesuit, moon dust, speed of light).
+8. **Query string admin secret is intentional** — From PRD #1 Decision 27: "Presenter bookmarks `/admin?secret=<value>`." This is a 25-minute conference demo, not production. CodeRabbit flagged it; we deliberately kept it.
 
 ## HARD CONSTRAINTS
 
-- **JavaScript only** — not TypeScript
-- **Anthropic SDK** for LLM calls
-- **OTel API only** — no SDK, no instrumentation packages
-- **Whitney's scope only** — Thomas owns the platform (Knative, Flagger, Contour, OTel Collector). This repo = demo apps + audience web UI
-- **Same story arc across variants** — both variants in each round tell the same beats in the same order; only style (Round 1) or model quality (Round 2) differs
-- **4 container images** — 2 per demo round, admin baked into each
-- **Vitest** for tests, not Jest
-- **vals** for secrets — never export to `.zshrc` or commit secrets
-- **No mock modes** — real data and APIs only
-- **No Co-Authored-By AI attribution** in commits
+- **JavaScript only** — no TypeScript. Project-level constraint.
+- **OTel API only** — app uses `@opentelemetry/api` as peerDependency. SDK is provided by deployer (Thomas's platform).
+- **Anthropic SDK** for LLM calls.
+- **vals for secrets** — never export secrets to `.zshrc` or commit to repos. Use `vals exec -f .vals.yaml -- command`.
+- **ABOUTME headers required** — all `.js` source files must have ABOUTME header comment. Enforced by PreToolUse hook.
+- **No AI attribution in commits** — never include Claude/Anthropic/Co-Authored-By references.
+- **Feature branches required** — never commit directly to main (except docs-only with `[skip ci]`). `.skip-branching` not present.
+- **CodeRabbit review required before merge** — `.skip-coderabbit` not present.
+- **Pre-push hook runs security checks** — `console.log` statements in source files need `// eslint-disable-next-line no-console` annotations or they block push.
+- **Do NOT commit manually during PRD work** — `/prd-update-progress` handles commits, PRD updates, and journaling together.
 
 ## EXPLICIT DO-NOTs
 
-- Do NOT add a countdown timer or any auto-advance pacing mechanism
-- Do NOT use TypeScript
-- Do NOT chain LLM outputs between story parts
-- Do NOT add OTel SDK or instrumentation packages — API only
-- Do NOT use "Houston, we have a problem" in story prompts
-- Do NOT create a separate admin service — admin is part of each app
-- Do NOT use `npm start` in Dockerfile CMD — use `node` directly
-- Do NOT put dependency checks in liveness probes
-- Do NOT default port to 3000 — use 8080 for Knative
-- Do NOT commit manually during PRD work — `/prd-update-progress` handles commits
-- Do NOT add fallback mechanisms without explicit permission
-- Do NOT make unrelated code changes — document them in a new issue instead
+- **Do NOT push to ghcr.io** — Docker Hub only (`wiggitywhitney/`)
+- **Do NOT skip human verification** — every image must be reviewed by the user
+- **Do NOT run tests during completion workflow** — CI handles that
+- **Do NOT use TypeScript** — JavaScript only
+- **Do NOT add OTel SDK dependencies** — API only
+- **Do NOT commit with AI attribution** — no Co-Authored-By, no Claude/Anthropic references
+- **Do NOT commit manually during PRD work** — use `/prd-update-progress`
+- **Do NOT amend previous commits** — always create new commits
+- **Do NOT suggest ghcr.io as alternative** — user explicitly rejected it
+- **Do NOT batch image verification** — one at a time, then paired
 
 ## CURRENT STATE
 
-**PRD #1 Complete (Whitney's scope)** — All milestones M1-M5 implemented and tested. M6/M7 deferred to Thomas's platform integration.
+**What has been done:**
+- PRD #1 (demo apps) is complete and merged (PR #3, Issue #1 closed)
+- All 4 demo app variants are implemented with 125 tests passing
+- Build scripts exist (`scripts/build-round1.sh`, `scripts/build-round2.sh`)
+- Dockerfile exists with `VARIANT_STYLE`, `VARIANT_MODEL`, `ROUND` build args
+- PRD #4 file created at `prds/4-container-image-publish.md`
+- Issue #4 created on GitHub with PRD label
+- 6 Anki cards saved for project knowledge
 
-**Implemented milestones:**
-- M1: Core story app with K8s readiness (health endpoints, graceful shutdown, non-root Dockerfile)
-- M2: Voting + OTel instrumentation (`gen_ai.evaluation.result` span events)
-- M3: Round 1 prompt variants (dry/academic vs funny/engaging moon story)
-- M4: Round 2 model variants (Haiku vs Opus circus/Houdini story)
-- M5: Multi-variant admin with status display and shared-secret auth
-- README with project overview, dev setup, and build instructions
+**What remains (PRD #4 milestones):**
+- **M1**: Build all 4 images (run build scripts with `wiggitywhitney/story-app` prefix)
+- **M2**: Verify each image individually with human review (4 images, sequential)
+- **M3**: Verify admin panel with single variant running
+- **M4**: Verify admin panel with paired variants (coordinator + follower via `VARIANT_URLS`)
+- **M5**: Push all 4 to Docker Hub + update README with pull/run instructions for Thomas
 
-**Deferred (requires Thomas's platform):**
-- M6: Integration testing on Knative + Flagger + OTel Collector
-- M7: Datadog dashboards for satisfaction metrics
+**Current git state:** On `main`, clean working tree. The PRD #4 file needs to be committed to main (docs-only, `[skip ci]`), then a feature branch `feature/prd-4-container-image-publish` needs to be created. The `/prd-start` workflow was interrupted at the "commit PRD and create branch" step.

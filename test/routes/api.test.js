@@ -186,6 +186,16 @@ describe('API routes', () => {
       expect(res.body.currentPart).toBe(1);
     });
 
+    it('does not create a session on poll', async () => {
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/story/status');
+      await request(app, '/api/story/status');
+      await request(app, '/api/story/status');
+
+      const adminRes = await request(app, '/api/admin/status');
+      expect(adminRes.body.sessions).toBe(0);
+    });
+
     it('shows generated parts after fetching a story part', async () => {
       const app = buildApp(mockGenerator);
       await request(app, '/api/admin/advance', { method: 'POST' });
@@ -238,7 +248,7 @@ describe('API routes', () => {
       expect(res.body.vote).toBe('thumbs_down');
     });
 
-    it('allows changing vote from thumbs_up to thumbs_down', async () => {
+    it('rejects vote change after initial vote is locked', async () => {
       const app = buildApp(mockGenerator);
       const sessionId = await setupSessionWithPart(app, mockGenerator);
 
@@ -254,8 +264,8 @@ describe('API routes', () => {
         body: { vote: 'thumbs_down' },
       });
 
-      expect(res.status).toBe(200);
-      expect(res.body.vote).toBe('thumbs_down');
+      expect(res.status).toBe(409);
+      expect(res.body.error).toMatch(/already voted/i);
     });
 
     it('returns 400 for invalid vote value', async () => {
@@ -359,7 +369,7 @@ describe('API routes', () => {
       });
     });
 
-    it('emits OTel event on vote change', async () => {
+    it('does not emit OTel event on rejected vote change', async () => {
       const app = buildApp(mockGenerator);
       const sessionId = await setupSessionWithPart(app, mockGenerator);
 
@@ -374,8 +384,8 @@ describe('API routes', () => {
         body: { vote: 'thumbs_down' },
       });
 
-      expect(emitEvaluationEvent).toHaveBeenCalledTimes(2);
-      expect(emitEvaluationEvent.mock.calls[1][0].vote).toBe('thumbs_down');
+      expect(emitEvaluationEvent).toHaveBeenCalledTimes(1);
+      expect(emitEvaluationEvent.mock.calls[0][0].vote).toBe('thumbs_up');
     });
 
     it('does not emit OTel event on invalid vote', async () => {
@@ -389,6 +399,38 @@ describe('API routes', () => {
       });
 
       expect(emitEvaluationEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /api/story/:part generation delay', () => {
+    it('delays response when MIN_GENERATION_DELAY_MS is set and generation is fast', async () => {
+      config.minGenerationDelayMs = 200;
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      const start = Date.now();
+      await request(app, '/api/story/1');
+      const elapsed = Date.now() - start;
+
+      expect(elapsed).toBeGreaterThanOrEqual(180); // allow small timing tolerance
+      config.minGenerationDelayMs = 0;
+    });
+
+    it('does not delay cached responses', async () => {
+      config.minGenerationDelayMs = 200;
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      const res1 = await request(app, '/api/story/1');
+      const cookie = res1.headers['set-cookie'][0].split(';')[0];
+      const sessionId = cookie.split('=')[1];
+
+      const start = Date.now();
+      await request(app, '/api/story/1', { cookies: { sessionId } });
+      const elapsed = Date.now() - start;
+
+      expect(elapsed).toBeLessThan(100);
+      config.minGenerationDelayMs = 0;
     });
   });
 
@@ -696,6 +738,17 @@ describe('API routes', () => {
     });
   });
 
+  describe('GET /admin/status includes style and round', () => {
+    it('returns style and round in status response', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/status');
+
+      expect(res.status).toBe(200);
+      expect(res.body.style).toBe(config.variantStyle);
+      expect(res.body.round).toBe(config.round);
+    });
+  });
+
   describe('variant status', () => {
     const originalFetch = global.fetch;
 
@@ -755,9 +808,20 @@ describe('API routes', () => {
       expect(res.body.variants[1].label).toBe('Round 1 Dry');
     });
 
-    it('falls back to URL when label is missing for an index', async () => {
-      config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
-      config.variantLabels = ['Round 1 Funny'];
+    it('auto-generates label from variant style and round when no label configured', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 3, style: 'funny', round: 1 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(res.body.variants[0].label).toBe('Round 1 Funny');
+    });
+
+    it('falls back to URL when no label and variant has no style/round', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
         json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 3 }),
       });
@@ -765,8 +829,7 @@ describe('API routes', () => {
       const app = buildApp(mockGenerator);
       const res = await request(app, '/api/admin/variant-status');
 
-      expect(res.body.variants[0].label).toBe('Round 1 Funny');
-      expect(res.body.variants[1].label).toBe('http://app-1b:8080');
+      expect(res.body.variants[0].label).toBe('http://app-1b:8080');
     });
 
     it('handles variant failure gracefully', async () => {

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# ABOUTME: Build Round 1 container images with dry (1a) and funny (1b) style variants
+# ABOUTME: Accepts registry prefix and tag arguments for Docker image tagging
 set -euo pipefail
 
 # Build Round 1 variant images: dry (1a) and funny (1b)

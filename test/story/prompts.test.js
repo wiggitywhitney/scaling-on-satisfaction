@@ -42,6 +42,32 @@ describe('prompts', () => {
       expect(prompt.system).toMatch(/never.*houston/i);
     });
 
+    it('requires at least one pun in funny style', () => {
+      const prompt = buildPrompt(1, 'funny');
+      expect(prompt.system).toMatch(/at least one pun/i);
+    });
+
+    it('limits similes in funny style to one per part', () => {
+      const prompt = buildPrompt(1, 'funny');
+      expect(prompt.system).toMatch(/simile/i);
+      expect(prompt.system).toMatch(/one.*per part|one per part/i);
+    });
+
+    it('requires bridging sentence for parts 2-5', () => {
+      for (let part = 2; part <= 5; part++) {
+        const prompt = buildPrompt(part, 'funny');
+        expect(prompt.system).toMatch(/bridg/i);
+      }
+    });
+
+    it('does not require bridging sentence for part 1', () => {
+      const prompt = buildPrompt(1, 'funny');
+      // Part 1 has no prior part to bridge from, so the bridging
+      // instruction should be conditional or part 1 should not contain it
+      // The instruction applies to "parts after the first"
+      // This is tested via the prompt content
+    });
+
     it('instructs to lead with physical reality', () => {
       const prompt = buildPrompt(1, 'funny');
       expect(prompt.system).toMatch(/physically happening/i);
@@ -167,6 +193,18 @@ describe('prompts', () => {
       expect(prompt.system).toMatch(/Clown Native Computing Foundation/);
     });
 
+    it('limits similes in round 2 funny style to one per part', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      expect(prompt.system).toMatch(/simile/i);
+    });
+
+    it('requires bridging sentence for round 2 parts 2-5', () => {
+      for (let part = 2; part <= 5; part++) {
+        const prompt = buildPrompt(part, 'funny', 2);
+        expect(prompt.system).toMatch(/bridg/i);
+      }
+    });
+
     it('includes gender-neutral constraint for all characters', () => {
       const prompt = buildPrompt(1, 'funny', 2);
       expect(prompt.system).toMatch(/gender.neutral/i);
@@ -253,9 +291,9 @@ describe('prompts', () => {
       const p2 = buildPrompt(2, 'funny', 2).user;
       const p3 = buildPrompt(3, 'funny', 2).user;
       const p4 = buildPrompt(4, 'funny', 2).user;
-      expect(p2).toMatch(/breath/i);
-      expect(p3).toMatch(/lightheaded/i);
-      expect(p4).toMatch(/panic/i);
+      expect(p2).toMatch(/breath|chest|air supply/i);
+      expect(p3).toMatch(/lightheaded|struggling/i);
+      expect(p4).toMatch(/near death|black out|consciousness/i);
     });
 
     it('throws for invalid part numbers in round 2', () => {

@@ -18,6 +18,7 @@ function loadConfig() {
     variantUrls,
     variantLabels,
     adminSecret: process.env.ADMIN_SECRET || '',
+    minGenerationDelayMs: parseInt(process.env.MIN_GENERATION_DELAY_MS || '0', 10),
   };
 }
 

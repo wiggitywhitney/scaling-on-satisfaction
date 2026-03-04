@@ -1,7 +1,7 @@
 # PRD #4: Build, Verify, and Push Container Images to Docker Hub
 
 **GitHub Issue**: [#4](https://github.com/wiggitywhitney/scaling-on-satisfaction/issues/4)
-**Status**: Not Started
+**Status**: In Progress
 **Priority**: High
 **Depends On**: PRD #1 (complete)
 
@@ -27,47 +27,47 @@ Build all 4 images, verify each one locally with human review, test the admin pa
 ## Verification Checklist (Per Image)
 
 For each image, human verifies:
-- [ ] Container starts without errors (logs show port, round, style, model)
-- [ ] `GET /healthz` returns 200
-- [ ] Audience UI loads at `http://localhost:<port>` (welcome screen visible)
-- [ ] Admin panel loads at `http://localhost:<port>/admin`
-- [ ] Advancing from admin triggers story generation (requires API key)
-- [ ] Story text appears in audience UI with correct style/theme
-- [ ] Vote buttons work (thumbs up/down)
+- [x] Container starts without errors (logs show port, round, style, model)
+- [x] `GET /healthz` returns 200
+- [x] Audience UI loads at `http://localhost:<port>` (welcome screen visible)
+- [x] Admin panel loads at `http://localhost:<port>/admin`
+- [x] Advancing from admin triggers story generation (requires API key)
+- [x] Story text appears in audience UI with correct style/theme
+- [x] Vote buttons work (thumbs up/down)
 
 ## Milestones
 
 ### M1: Build All 4 Images
 Build using existing scripts with Docker Hub registry prefix.
 
-- [ ] Build Round 1 images: `./scripts/build-round1.sh wiggitywhitney/story-app`
-- [ ] Build Round 2 images: `./scripts/build-round2.sh wiggitywhitney/story-app`
-- [ ] All 4 images appear in `docker images`
+- [x] Build Round 1 images: `./scripts/build-round1.sh wiggitywhitney/story-app`
+- [x] Build Round 2 images: `./scripts/build-round2.sh wiggitywhitney/story-app`
+- [x] All 4 images appear in `docker images`
 
 ### M2: Verify Each Image Individually
 Run each image one at a time with API key injected. Human checks story generation, UI, and voting.
 
-- [ ] App 1a (dry/academic moon story) — human verified
-- [ ] App 1b (funny/engaging moon story) — human verified
-- [ ] App 2a (cheap model circus story) — human verified
-- [ ] App 2b (expensive model circus story) — human verified
+- [x] App 1a (dry/academic moon story) — human verified
+- [x] App 1b (funny/engaging moon story) — human verified
+- [x] App 2a (cheap model circus story) — human verified
+- [x] App 2b (expensive model circus story) — human verified
 
 ### M3: Verify Admin Panel — Single Variant
 Test the admin panel controls (advance, reset, status display) with one image running.
 
-- [ ] Admin advance moves story forward
-- [ ] Admin reset clears state
-- [ ] Session count displays correctly
-- [ ] Admin auth works when ADMIN_SECRET is set
+- [x] Admin advance moves story forward
+- [x] Admin reset clears state
+- [x] Session count displays correctly
+- [x] Admin auth works when ADMIN_SECRET is set
 
 ### M4: Verify Admin Panel — Paired Variants
 Run a Round 1 pair (1a + 1b) simultaneously. One variant acts as coordinator with `VARIANT_URLS` pointing to the other.
 
-- [ ] Both variants start on different ports
-- [ ] Coordinator admin shows variant status
-- [ ] Single "Advance" button advances both variants
-- [ ] Reset clears both variants
-- [ ] Variant labels display correctly
+- [x] Both variants start on different ports
+- [x] Coordinator admin shows variant status
+- [x] Single "Advance" button advances both variants
+- [x] Reset clears both variants
+- [x] Variant labels display correctly
 
 ### M5: Push to Docker Hub and Update README
 Push all 4 verified images and add pull instructions to README.
@@ -78,8 +78,8 @@ Push all 4 verified images and add pull instructions to README.
 
 ## Success Criteria
 
-- [ ] All 4 images build, run, and generate stories correctly
-- [ ] Admin panel works for both single and paired variants
+- [x] All 4 images build, run, and generate stories correctly
+- [x] Admin panel works for both single and paired variants
 - [ ] Images are pullable from Docker Hub
 - [ ] README documents how Thomas should pull and deploy the images
 
@@ -89,3 +89,8 @@ Push all 4 verified images and add pull instructions to README.
 |------|----------|-----------|
 | 2026-03-03 | Docker Hub over ghcr.io | Whitney's Docker CLI already pushes to Docker Hub (`wiggitywhitney`). No reason to add ghcr.io auth. |
 | 2026-03-03 | Human verification required per image | Each image has a different style/model combo that needs visual confirmation. Automated tests cover code correctness; human checks the experience. |
+| 2026-03-03 | Vote locking (no re-votes) | Prevent spam by locking votes after first submission. Returns 409 Conflict on re-vote attempts. |
+| 2026-03-03 | 3s generation delay for cheap model (2a) | Haiku responds much faster than Opus. Added MIN_GENERATION_DELAY_MS=3000 to mask speed difference so audience can't identify the cheap model. |
+| 2026-03-03 | Strict 150-word max for all stories | Both rounds, both styles enforce a strict 150-word maximum. Previous 130-175 range let the dry style run long. |
+| 2026-03-03 | Auto-generated variant labels from style/round | Variant status endpoint derives labels from variant's own style/round response, eliminating need for VARIANT_LABELS env var. |
+| 2026-03-03 | Extracted poll controller to prevent session inflation | Audience page's poll loop caused overlapping fetches during slow LLM generation, creating duplicate sessions. Extracted testable poll.js module with fetchingPart guard. |

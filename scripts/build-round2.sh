@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# ABOUTME: Build Round 2 container images with cheap (haiku) and expensive (opus) models
+# ABOUTME: Accepts registry prefix, tag, and style arguments for Docker image tagging
 set -euo pipefail
 
 # Build Round 2 variant images: cheap model (2a) and expensive model (2b)
@@ -20,6 +22,7 @@ docker build \
   --build-arg VARIANT_STYLE="${STYLE}" \
   --build-arg VARIANT_MODEL="${CHEAP_MODEL}" \
   --build-arg ROUND=2 \
+  --build-arg MIN_GENERATION_DELAY_MS=3000 \
   -t "${REGISTRY}-2a:${TAG}" \
   .
 
