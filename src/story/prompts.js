@@ -3,12 +3,12 @@
 export const TOTAL_PARTS = 5;
 
 const STYLE_INSTRUCTIONS = {
-  funny: `Write in a funny, engaging, and humorous tone. Use puns and wordplay — especially plays on tech terminology meeting lunar/space reality. Keep it light and snappy. One good extended metaphor per part maximum; don't stack metaphors.`,
+  funny: `Write in a funny, engaging, and humorous tone. Include at least one pun or wordplay — especially plays on tech terminology meeting lunar/space reality. Keep it light and snappy. One good extended metaphor per part maximum; don't stack metaphors. Limit similes (comparisons using "like" or "as") to one per part.`,
   dry: `Write in a formal, academic tone as if this were a peer-reviewed conference paper or technical incident report. Use passive voice, domain-specific jargon, and precise observations. Treat every situation — no matter how absurd — with complete seriousness. No jokes, no puns, no wordplay, no exclamation marks. Use precise, technical, and occasionally obscure vocabulary.`,
 };
 
 const ROUND2_STYLE_INSTRUCTIONS = {
-  funny: `Write in a funny, engaging, and humorous tone. Use puns and wordplay — especially plays on tech terminology meeting circus reality. Keep it light and snappy. One good extended metaphor per part maximum; don't stack metaphors.`,
+  funny: `Write in a funny, engaging, and humorous tone. Include at least one pun or wordplay — especially plays on tech terminology meeting circus reality. Keep it light and snappy. One good extended metaphor per part maximum; don't stack metaphors. Limit similes (comparisons using "like" or "as") to one per part.`,
   dry: `Write in a formal, academic tone as if this were a peer-reviewed conference paper or technical incident report. Use passive voice, domain-specific jargon, and precise observations. Treat every situation — no matter how absurd — with complete seriousness. No jokes, no puns, no wordplay, no exclamation marks. Use precise, technical, and occasionally obscure vocabulary.`,
 };
 
@@ -80,17 +80,17 @@ const ROUND2_FUNNY_BEATS = {
   },
   2: {
     title: 'Human Cannonball with a Helm-et',
-    instructions: `A human cannonball climbs into the cannon wearing an enormous Helm-et — make the Helm pun unmistakable. This is protective headgear AND a deployment tool. They fire across the big top. Meanwhile underwater, the developer makes progress: Helm charts package the application, service mesh routes traffic to the right endpoints. The deploy launches into the cluster like the cannonball across the tent. But the developer is running out of breath. Chest tight, lungs burning. The deploy isn't done yet. End on the struggle — underwater, breathless, deploy incomplete. Leave the audience wondering if they'll make it.`,
+    instructions: `A human cannonball climbs into the cannon wearing an enormous Helm-et — make the Helm pun unmistakable. This is protective headgear AND a deployment tool. They fire across the big top. Meanwhile underwater, the developer makes progress: Helm charts package the application, service mesh routes traffic to the right endpoints. The deploy launches into the cluster like the cannonball across the tent. The developer is uncomfortable — chest tightening, aware they can't stay down forever — but not desperate yet. The deploy isn't done yet. End on the struggle — underwater, short of breath, deploy incomplete. IMPORTANT: Keep the urgency mild. No "final seconds," no "running out of time," no near-death language. Save the life-threatening desperation for later parts.`,
     priorContext: `In Part 1, the developer arrived at the Clown Native Computing Foundation circus and was locked in a glass water tank as the Houdini act — they must deploy a working app before the air in their lungs runs out. They took a deep breath and the clock started.`,
   },
   3: {
     title: 'Trapeze Artist in Flux',
-    instructions: `High above the ring, a trapeze artist swings back and forth — they're in Flux. Make the Flux/GitOps pun land: swinging, synchronizing, always in motion. GitOps pulls the configuration into sync automatically. But the app also needs to pass security and compliance checks — Kyverno is the safety net below the trapeze. Secure and compliant by default, a net that's always there whether you look down or not. The developer is getting lightheaded. Vision starting to swim. Lungs screaming. Still not deployed. End with the developer fading — closer but not there yet.`,
+    instructions: `High above the ring, a trapeze artist swings back and forth — they're in Flux. Make the Flux/GitOps pun land: swinging, synchronizing, always in motion. GitOps pulls the configuration into sync automatically. But the app also needs to pass security and compliance checks — Kyverno is the safety net below the trapeze. Secure and compliant by default, a net that's always there whether you look down or not. The developer is getting lightheaded now. The discomfort from Part 2 is growing — they're struggling but still functioning, still typing. End with the developer visibly strained and slowing down — closer to deploying but not there yet. IMPORTANT: The developer is struggling, not dying. No "final seconds," no near-death imagery, no fading consciousness. Save the edge-of-death moment for Part 4.`,
     priorContext: `In Part 1, the developer was locked in a glass water tank at the Clown Native Computing Foundation circus — the Houdini act, deploy an app before their air runs out. In Part 2, a human cannonball wearing a Helm-et fired across the big top while the developer made progress with Helm charts and service mesh routing. But they're running out of breath and the deploy isn't done.`,
   },
   4: {
     title: 'Clown Car — One API, Many Interfaces',
-    instructions: `A tiny clown car rolls into the ring. An impossible number of clowns pour out, each offering a different way to interact with the same Kubernetes API — one with a CLI, one with a web dashboard, one waving a GitOps flag, one with an API client. One API, many interfaces, all from one impossibly small car. The developer is panicking now. Vision blurring, edges going dark, chest screaming for air. But the pieces are falling into place. The deploy is agonizingly close. End at the very edge — the developer is about to black out, the deploy is one step from completion.`,
+    instructions: `A tiny clown car rolls into the ring. An impossible number of clowns pour out, each offering a different way to interact with the same Kubernetes API — one with a CLI, one with a web dashboard, one waving a GitOps flag, one with an API client. One API, many interfaces, all from one impossibly small car. THIS is where the developer hits near death. Vision blurring, edges going dark, body going slack, on the verge of blacking out. But the pieces are falling into place — the deploy is agonizingly close. End at the absolute edge — the developer is about to lose consciousness, the deploy is one step from completion. This is the climax of the physical tension.`,
     priorContext: `In Part 1, the developer was locked in a glass water tank at the Clown Native Computing Foundation circus. In Part 2, a Helm-etted cannonball fired while Helm charts and service mesh moved the deploy forward. In Part 3, a trapeze artist swung in Flux while GitOps synced configs and Kyverno provided the security safety net. The developer is lightheaded and running out of air.`,
   },
   5: {
@@ -108,17 +108,17 @@ const ROUND2_DRY_BEATS = {
   },
   2: {
     title: 'Performance Segment — Ballistic Performer with Protective Helm Apparatus',
-    instructions: `A performer enters a pneumatic launching apparatus wearing cranial protection designated as a "Helm-et" — a nomenclature with documented correspondence to the Helm package management system. Upon launch, the performer achieves ballistic trajectory across the venue interior. The subject, submerged in the confinement tank, makes concurrent deployment progress: Helm charts organize application manifests into deployable packages, service mesh configuration establishes traffic routing to designated endpoints. However, the subject's respiratory reserves are diminishing measurably. Document physiological indicators: intercostal muscle tension, elevated cardiac rhythm, reduction in fine motor coordination. The deployment remains incomplete at segment conclusion.`,
+    instructions: `A performer enters a pneumatic launching apparatus wearing cranial protection designated as a "Helm-et" — a nomenclature with documented correspondence to the Helm package management system. Upon launch, the performer achieves ballistic trajectory across the venue interior. The subject, submerged in the confinement tank, makes concurrent deployment progress: Helm charts organize application manifests into deployable packages, service mesh configuration establishes traffic routing to designated endpoints. The subject's respiratory reserves show early-stage diminishment. Document mild physiological indicators: intercostal muscle tension, elevated cardiac rhythm, awareness of finite air supply. IMPORTANT: Maintain moderate urgency only — no references to final moments, near-death states, or imminent loss of consciousness. Reserve critical physiological deterioration for Section 4. The deployment remains incomplete at segment conclusion.`,
     priorContext: `In Section 1, a software developer was confined within an acrylic water tank at the Clown Native Computing Foundation performance venue. The assignment: complete an application deployment before exhaustion of respiratory reserves. The subject inhaled to maximum capacity and initiated the deployment sequence.`,
   },
   3: {
     title: 'Aerial Performance Segment — Pendular Performer and Flux State Analysis',
-    instructions: `An aerial performer executes pendular maneuvers on suspended apparatus at significant elevation — described as being "in Flux," a state with documented correspondence to the Flux GitOps synchronization system. The GitOps process achieves configuration state reconciliation automatically. The application further requires compliance validation against organizational security policies — this function is performed by Kyverno, analogous to the safety apparatus installed below the aerial performer. This represents a default security posture requiring no explicit configuration by the developer. The subject exhibits indicators of cerebral hypoxia: they are lightheaded, experiencing visual field disturbance, cognitive processing delay, and involuntary respiratory reflex suppression. Deployment progress continues incrementally. Completion is not achieved within this segment.`,
+    instructions: `An aerial performer executes pendular maneuvers on suspended apparatus at significant elevation — described as being "in Flux," a state with documented correspondence to the Flux GitOps synchronization system. The GitOps process achieves configuration state reconciliation automatically. The application further requires compliance validation against organizational security policies — this function is performed by Kyverno, analogous to the safety apparatus installed below the aerial performer. This represents a default security posture requiring no explicit configuration by the developer. The subject exhibits escalating but non-critical physiological indicators: lightheadedness, mild cognitive processing delay, and increasing discomfort. The subject remains functional and continues deployment operations. IMPORTANT: The subject is impaired but not in critical condition. Reserve severe oxygen depletion, vision collapse, and near-death indicators for Section 4. Deployment progress continues incrementally. Completion is not achieved within this segment.`,
     priorContext: `In Section 1, the subject was confined in a water tank at the Clown Native Computing Foundation venue with instructions to deploy an application before respiratory failure. In Section 2, a ballistic performer wearing a "Helm-et" was launched while the subject progressed via Helm chart packaging and service mesh routing. Respiratory reserves are diminishing.`,
   },
   4: {
     title: 'Vehicular Egress Phenomenon — Single API, Multiple Interface Paradigm',
-    instructions: `A vehicle of improbable dimensions enters the performance area. An excessive quantity of performers egress sequentially, each presenting a distinct interface to an identical Kubernetes API: command-line interface, graphical web dashboard, programmatic API client, GitOps declarative interface. This demonstrates the architectural principle wherein a single API supports multiple access paradigms from a single substrate. The subject's physiological condition has deteriorated to critical parameters: severe oxygen depletion, peripheral vision collapse, involuntary panic response activation, loss of fine motor control. The deployment approaches completion with minimal remaining steps. This segment concludes with the subject at the threshold of consciousness.`,
+    instructions: `A vehicle of improbable dimensions enters the performance area. An excessive quantity of performers egress sequentially, each presenting a distinct interface to an identical Kubernetes API: command-line interface, graphical web dashboard, programmatic API client, GitOps declarative interface. This demonstrates the architectural principle wherein a single API supports multiple access paradigms from a single substrate. THIS section documents near-death physiological deterioration. The subject's condition reaches critical parameters: severe oxygen depletion, peripheral vision collapse, involuntary panic response activation, loss of fine motor control, approach to terminal consciousness threshold. The deployment approaches completion with minimal remaining steps. This segment concludes with the subject at the threshold of consciousness — the climax of physiological crisis.`,
     priorContext: `In Section 1, the subject was confined in a water tank at the Clown Native Computing Foundation venue. In Section 2, Helm chart packaging and service mesh routing progressed the deployment during the ballistic performer segment. In Section 3, GitOps synchronization via Flux and default security compliance via Kyverno advanced the deployment further. The subject exhibits progressive cerebral hypoxia.`,
   },
   5: {
@@ -159,14 +159,14 @@ export function buildPrompt(partNumber, style, round = 1) {
       `Do not include a title or part number header — just write the story text directly.`,
       `Always spell out "Clown Native Computing Foundation" in full — never abbreviate to CNCF, never say "Cloud Native."`,
       `No animal acts — no lions, elephants, or animal performers of any kind.`,
-      `Do not summarize or recap earlier parts — the audience has already read them. Start directly in the action of this part.`,
+      `Do not summarize or recap earlier parts — the audience has already read them. For parts after the first, open with one bridging sentence that connects the previous part's situation to this part's action, then dive into new content.`,
       `Use 2-3 short paragraphs. The audience reads on phone screens.`,
     ]
     : [
       `Use a gender-neutral protagonist — refer to them as "they" or "the platform engineer" throughout. Never use "he" or "she".`,
       `Lead with what is physically happening. The reader should always understand the concrete situation first.`,
       `Do not include a title or part number header — just write the story text directly.`,
-      `Do not summarize or recap earlier parts — the audience has already read them. Start directly in the action of this part.`,
+      `Do not summarize or recap earlier parts — the audience has already read them. For parts after the first, open with one bridging sentence that connects the previous part's situation to this part's action, then dive into new content.`,
       `Use 2-3 short paragraphs. The audience reads on phone screens.`,
       `NEVER use the phrase "Houston, we have a problem" or any variation of it.`,
     ];
@@ -175,13 +175,13 @@ export function buildPrompt(partNumber, style, round = 1) {
     ? {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about a developer performing the Houdini act at the Clown Native Computing Foundation circus.`,
-        `Write at least 130 words and no more than 175 words (target 150). Keep it tight — every sentence should advance the story or land a joke.`,
+        `STRICT LIMIT: 150 words maximum. Keep it tight — every sentence should advance the story or land a joke.`,
         ...shared,
         styleInstruction,
       ],
       dry: [
         `You are an academic author documenting a serialized 5-part technical case study about a developer performing an escape act at a circus operated by the Clown Native Computing Foundation.`,
-        `Write at least 130 words and no more than 175 words (target 150). Every sentence should convey factual observations or technical analysis.`,
+        `STRICT LIMIT: 150 words maximum. Every sentence should convey factual observations or technical analysis.`,
         ...shared,
         styleInstruction,
       ],
@@ -189,13 +189,13 @@ export function buildPrompt(partNumber, style, round = 1) {
     : {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about a platform engineer on the moon.`,
-        `Write at least 130 words and no more than 175 words (target 150). Keep it tight — every sentence should advance the story or land a joke.`,
+        `STRICT LIMIT: 150 words maximum. Keep it tight — every sentence should advance the story or land a joke.`,
         ...shared,
         styleInstruction,
       ],
       dry: [
         `You are an academic author documenting a serialized 5-part technical case study about a platform engineer deployed to the lunar surface.`,
-        `Write at least 130 words and no more than 175 words (target 150). Every sentence should convey factual observations or technical analysis.`,
+        `STRICT LIMIT: 150 words maximum. Every sentence should convey factual observations or technical analysis.`,
         ...shared,
         styleInstruction,
       ],

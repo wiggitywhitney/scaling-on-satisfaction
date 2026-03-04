@@ -117,6 +117,7 @@
     const variantsEl = document.getElementById('variants');
 
     let mainCurrentPart = 0;
+    let mainStatus = null;
     const urlParams = new URLSearchParams(window.location.search);
     const secret = urlParams.get('secret') || '';
     const secretQuery = secret ? `?secret=${encodeURIComponent(secret)}` : '';
@@ -127,12 +128,18 @@
         if (!res.ok) throw new Error(`status ${res.status}`);
         const data = await res.json();
         mainCurrentPart = data.currentPart;
+        mainStatus = data;
         status.textContent = `${data.currentPart} / ${data.totalParts}`;
         btnAdvance.disabled = data.currentPart >= data.totalParts;
         info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
       } catch {
         info.textContent = 'Status unavailable';
       }
+    }
+
+    function formatLabel(style, round) {
+      const s = style ? style.charAt(0).toUpperCase() + style.slice(1) : 'Unknown';
+      return `Round ${round} ${s}`;
     }
 
     async function refreshVariants() {
@@ -145,7 +152,18 @@
           return;
         }
         variantsEl.style.display = '';
-        variantsEl.innerHTML = '<h2>Variants</h2>' + data.variants.map(v => {
+        const allVariants = [];
+        if (mainStatus) {
+          allVariants.push({
+            label: formatLabel(mainStatus.style, mainStatus.round) + ' (this instance)',
+            ok: true,
+            currentPart: mainStatus.currentPart,
+            totalParts: mainStatus.totalParts,
+            sessions: mainStatus.sessions,
+          });
+        }
+        allVariants.push(...data.variants);
+        variantsEl.innerHTML = '<h2>Variants</h2>' + allVariants.map(v => {
           if (!v.ok) {
             return `<div class="variant-card">
               <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">error: ${esc(v.error)}</div></div>
@@ -170,14 +188,28 @@
     }
 
     btnAdvance.addEventListener('click', async () => {
-      await fetch(`/api/admin/advance${secretQuery}`, { method: 'POST' });
+      const res = await fetch(`/api/admin/advance${secretQuery}`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        info.textContent = body.error || `Error: ${res.status}`;
+        info.style.color = '#e74c3c';
+        return;
+      }
+      info.style.color = '';
       refresh();
       refreshVariants();
     });
 
     btnReset.addEventListener('click', async () => {
       if (confirm('Reset story? All audience sessions will be cleared.')) {
-        await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
+        const res = await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          info.textContent = body.error || `Error: ${res.status}`;
+          info.style.color = '#e74c3c';
+          return;
+        }
+        info.style.color = '';
         refresh();
         refreshVariants();
       }

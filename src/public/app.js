@@ -1,9 +1,10 @@
 // ABOUTME: Client-side audience UI that polls for story parts and handles voting
 // ABOUTME: Auto-loads new parts when presenter advances, sends thumbs-up/down votes
+import { createPollController } from './poll.js';
+
 const POLL_INTERVAL_MS = 2000;
 
-let displayedPart = 0;
-let polling = null;
+let voteLocked = false;
 
 const welcome = document.getElementById('welcome');
 const story = document.getElementById('story');
@@ -14,10 +15,14 @@ const progress = document.getElementById('progress');
 const voteButtons = document.getElementById('vote-buttons');
 const voteBtns = document.querySelectorAll('.vote-btn');
 
+let currentDisplayedPart = 0;
+
 function showVoteButtons(existingVote) {
   voteButtons.classList.add('active');
+  voteLocked = !!existingVote;
   voteBtns.forEach((btn) => {
     btn.classList.remove('selected', 'dimmed');
+    btn.disabled = !!existingVote;
     if (existingVote) {
       if (btn.dataset.vote === existingVote) {
         btn.classList.add('selected');
@@ -30,12 +35,17 @@ function showVoteButtons(existingVote) {
 
 function hideVoteButtons() {
   voteButtons.classList.remove('active');
-  voteBtns.forEach((btn) => { btn.classList.remove('selected', 'dimmed'); });
+  voteLocked = false;
+  voteBtns.forEach((btn) => {
+    btn.classList.remove('selected', 'dimmed');
+    btn.disabled = false;
+  });
 }
 
 async function submitVote(vote) {
+  if (voteLocked) return;
   try {
-    const res = await fetch(`/api/story/${displayedPart}/vote`, {
+    const res = await fetch(`/api/story/${currentDisplayedPart}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vote }),
@@ -54,27 +64,6 @@ voteBtns.forEach((btn) => {
   });
 });
 
-function showStory(data) {
-  welcome.classList.add('hidden');
-  story.classList.add('active');
-  loading.classList.remove('active');
-  waiting.classList.remove('active');
-  storyText.textContent = data.text;
-  storyText.classList.add('visible');
-  progress.textContent = `Part ${data.part} of ${data.totalParts}`;
-  displayedPart = data.part;
-  showVoteButtons(data.vote);
-}
-
-function showLoading() {
-  welcome.classList.add('hidden');
-  story.classList.add('active');
-  waiting.classList.remove('active');
-  storyText.classList.remove('visible');
-  loading.classList.add('active');
-  hideVoteButtons();
-}
-
 function showWaitingForNext() {
   loading.classList.remove('active');
   storyText.classList.remove('visible');
@@ -82,39 +71,41 @@ function showWaitingForNext() {
   hideVoteButtons();
 }
 
-async function fetchPart(part) {
-  showLoading();
-
-  try {
+const controller = createPollController({
+  fetchStoryStatus: async () => {
+    const res = await fetch('/api/story/status');
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    return res.json();
+  },
+  fetchStoryPart: async (part) => {
     const res = await fetch(`/api/story/${part}`);
-    if (!res.ok) {
-      throw new Error(`Server error: ${res.status}`);
-    }
-    const data = await res.json();
-    showStory(data);
-  } catch (err) {
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+    return res.json();
+  },
+  onLoading: () => {
+    welcome.classList.add('hidden');
+    story.classList.add('active');
+    waiting.classList.remove('active');
+    storyText.classList.remove('visible');
+    loading.classList.add('active');
+    hideVoteButtons();
+  },
+  onPart: (data) => {
+    welcome.classList.add('hidden');
+    story.classList.add('active');
+    loading.classList.remove('active');
+    waiting.classList.remove('active');
+    storyText.textContent = data.text;
+    storyText.classList.add('visible');
+    progress.textContent = `Part ${data.part} of ${data.totalParts}`;
+    currentDisplayedPart = data.part;
+    showVoteButtons(data.vote);
+  },
+  onError: (err) => {
     loading.classList.remove('active');
     storyText.textContent = `Error loading story: ${err.message}`;
     storyText.classList.add('visible');
-  }
-}
+  },
+});
 
-async function pollForNext() {
-  try {
-    const res = await fetch('/api/story/status');
-    if (!res.ok) return;
-    const data = await res.json();
-
-    if (data.currentPart > displayedPart) {
-      fetchPart(data.currentPart);
-    }
-  } catch {
-    // Silently retry on next poll
-  }
-}
-
-function startPolling() {
-  polling = setInterval(pollForNext, POLL_INTERVAL_MS);
-}
-
-startPolling();
+setInterval(() => controller.poll(), POLL_INTERVAL_MS);

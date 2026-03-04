@@ -32,8 +32,11 @@ export function createApiRouter(generator) {
   const router = Router();
 
   router.get('/story/status', (req, res) => {
-    const { session } = getSession(req, res);
-    const generatedParts = Object.keys(session.parts).map(Number).sort((a, b) => a - b);
+    const sessionId = req.cookies.sessionId;
+    const session = sessionId ? sessions.get(sessionId) : null;
+    const generatedParts = session
+      ? Object.keys(session.parts).map(Number).sort((a, b) => a - b)
+      : [];
     res.json({ totalParts: TOTAL_PARTS, generatedParts, currentPart });
   });
 
@@ -64,12 +67,21 @@ export function createApiRouter(generator) {
     }
 
     try {
+      const genStart = Date.now();
       const result = await generator.generatePart(
         partNumber,
         config.variantStyle,
         config.variantModel,
         config.round
       );
+
+      if (config.minGenerationDelayMs > 0) {
+        const elapsed = Date.now() - genStart;
+        const remaining = config.minGenerationDelayMs - elapsed;
+        if (remaining > 0) {
+          await new Promise(resolve => setTimeout(resolve, remaining));
+        }
+      }
 
       session.parts[partNumber] = result;
 
@@ -111,6 +123,10 @@ export function createApiRouter(generator) {
 
     if (!session.parts[partNumber]) {
       return res.status(400).json({ error: 'Part not generated for this session' });
+    }
+
+    if (session.parts[partNumber].vote) {
+      return res.status(409).json({ error: 'Already voted on this part' });
     }
 
     session.parts[partNumber].vote = vote;
@@ -176,20 +192,32 @@ export function createAdminRouter() {
   });
 
   router.get('/status', (req, res) => {
-    res.json({ currentPart, totalParts: TOTAL_PARTS, sessions: sessions.size });
+    res.json({
+      currentPart,
+      totalParts: TOTAL_PARTS,
+      sessions: sessions.size,
+      style: config.variantStyle,
+      round: config.round,
+    });
   });
 
   router.get('/variant-status', async (req, res) => {
     const variants = [];
     for (let i = 0; i < config.variantUrls.length; i++) {
       const baseUrl = config.variantUrls[i];
-      const label = (config.variantLabels && config.variantLabels[i]) || baseUrl;
+      const explicitLabel = config.variantLabels && config.variantLabels[i];
       const url = `${baseUrl.replace(/\/$/, '')}/api/admin/status`;
       try {
         const fetchRes = await fetch(url);
+        if (!fetchRes.ok) {
+          throw new Error(`status ${fetchRes.status}`);
+        }
         const data = await fetchRes.json();
+        const label = explicitLabel
+          || (data.style ? `Round ${data.round} ${data.style.charAt(0).toUpperCase() + data.style.slice(1)}` : baseUrl);
         variants.push({ url: baseUrl, label, ok: true, ...data });
       } catch (err) {
+        const label = explicitLabel || baseUrl;
         variants.push({ url: baseUrl, label, ok: false, error: err.message });
       }
     }

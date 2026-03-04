@@ -5,3 +5,4 @@ node_modules/
 journal/
 dist/
 .DS_Store
+.claude/design-decisions.md
