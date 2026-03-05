@@ -30,8 +30,8 @@ journal/
 ### M1: Git Exclude Setup
 Configure `.git/info/exclude` in Thomas's repo to hide all Whitney workflow files.
 
-- [ ] Add `.claude/`, `.mcp.json`, `.vals.yaml`, `journal/` to `.git/info/exclude`
-- [ ] Verify `git status` shows nothing after adding these directories/files
+- [x] Add `.claude/`, `.mcp.json`, `.vals.yaml`, `journal/` to `.git/info/exclude`
+- [x] Verify `git status` shows nothing after adding these directories/files
 
 ### M2: Project CLAUDE.md
 Create a project-level `.claude/CLAUDE.md` with context about Thomas's repo — what it is, the FluxCD GitOps structure, Knative/Flagger/OTel Operator setup, and Whitney's role.
