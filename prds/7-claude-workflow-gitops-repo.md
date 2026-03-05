@@ -51,10 +51,10 @@ Set up the commit-story-v2 MCP server so journal entries are captured for work i
 ### M4: Commit-Story Git Hook
 Install the post-commit hook so journal entries are generated automatically after each commit.
 
-- [ ] Install post-commit hook to `.git/hooks/post-commit`
-- [ ] Hook runs commit-story in background with vals for secrets
-- [ ] Verify hook fires on a test commit and generates a journal entry
-- [ ] Hook is invisible to Thomas (lives in `.git/hooks/`, which is always local)
+- [x] Install post-commit hook to `.git/hooks/post-commit`
+- [x] Hook runs commit-story in background with vals for secrets
+- [x] Verify hook fires on a test commit and generates a journal entry
+- [x] Hook is invisible to Thomas (lives in `.git/hooks/`, which is always local)
 
 ### M5: Vals Secrets
 Set up `.vals.yaml` if any commands in Thomas's repo need secrets injected (e.g., ANTHROPIC_API_KEY for testing, GITHUB_TOKEN for CodeRabbit).
