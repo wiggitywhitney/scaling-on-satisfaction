@@ -63,13 +63,16 @@ Set up `.vals.yaml` if any commands in Thomas's repo need secrets injected (e.g.
 - [ ] Create `.vals.yaml` with appropriate `ref+gcpsecrets://` references
 - [ ] Verify `vals exec` works for needed commands
 
-### M6: CodeRabbit CLI & PRD Skills
-Set up CodeRabbit and autonomous PRD skills so Whitney's full workflow is available.
+### M6: CodeRabbit CLI, PRD Skills & Autonomous Mode
+Set up CodeRabbit, autonomous PRD skills, and `/make-autonomous` so Whitney's full workflow is available.
 
 - [ ] Add CodeRabbit MCP server to `.mcp.json` (npx coderabbitai-mcp with GITHUB_TOKEN)
-- [ ] Run `/make-autonomous` in Thomas's repo to install YOLO skill symlinks
+- [ ] Run `/make-autonomous` in Thomas's repo to install YOLO skill symlinks and SessionStart hook
+- [ ] Ensure `.claude/skills/` symlinks are covered by `.git/info/exclude` (already under `.claude/`)
+- [ ] Ensure `.claude/settings.local.json` permissions and hooks from `/make-autonomous` are invisible (already auto-local)
 - [ ] Verify CodeRabbit CLI runs during pre-push hook
 - [ ] Verify PRD skills work for creating/tracking work in Thomas's repo
+- [ ] Verify `/clear` → auto-resume loop works in Thomas's repo
 
 ### M7: Verification
 End-to-end verification that everything works and nothing leaks.
