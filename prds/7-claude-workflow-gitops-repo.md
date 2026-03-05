@@ -36,9 +36,9 @@ Configure `.git/info/exclude` in Thomas's repo to hide all Whitney workflow file
 ### M2: Project CLAUDE.md
 Create a project-level `.claude/CLAUDE.md` with context about Thomas's repo — what it is, the FluxCD GitOps structure, Knative/Flagger/OTel Operator setup, and Whitney's role.
 
-- [ ] Create `.claude/CLAUDE.md` with repo context and conventions
-- [ ] Include notes on FluxCD reconciliation, Kustomize overlay pattern, and infrastructure layout
-- [ ] Document that Whitney's scope includes app manifests and ESO setup
+- [x] Create `.claude/CLAUDE.md` with repo context and conventions
+- [x] Include notes on FluxCD reconciliation, Kustomize overlay pattern, and infrastructure layout
+- [x] Document that Whitney's scope includes app manifests and ESO setup
 
 ### M3: Commit-Story MCP Server
 Set up the commit-story-v2 MCP server so journal entries are captured for work in Thomas's repo.
