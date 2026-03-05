@@ -59,9 +59,9 @@ Install the post-commit hook so journal entries are generated automatically afte
 ### M5: Vals Secrets
 Set up `.vals.yaml` if any commands in Thomas's repo need secrets injected (e.g., ANTHROPIC_API_KEY for testing, GITHUB_TOKEN for CodeRabbit).
 
-- [ ] Determine which secrets are needed for work in Thomas's repo
-- [ ] Create `.vals.yaml` with appropriate `ref+gcpsecrets://` references
-- [ ] Verify `vals exec` works for needed commands
+- [x] Determine which secrets are needed for work in Thomas's repo
+- [x] Create `.vals.yaml` with appropriate `ref+gcpsecrets://` references
+- [x] Verify `vals exec` works for needed commands
 
 ### M6: CodeRabbit CLI, PRD Skills & Autonomous Mode
 Set up CodeRabbit, autonomous PRD skills, and `/make-autonomous` so Whitney's full workflow is available.
