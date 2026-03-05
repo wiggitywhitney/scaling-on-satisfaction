@@ -43,10 +43,10 @@ Create a project-level `.claude/CLAUDE.md` with context about Thomas's repo — 
 ### M3: Commit-Story MCP Server
 Set up the commit-story-v2 MCP server so journal entries are captured for work in Thomas's repo.
 
-- [ ] Create `.mcp.json` with commit-story server pointing to local commit-story-v2 install
-- [ ] Create `.claude/settings.local.json` with `enabledMcpjsonServers` and `enableAllProjectMcpServers`
-- [ ] Create empty `journal/` directory
-- [ ] Verify MCP tools are available in Claude Code session
+- [x] Create `.mcp.json` with commit-story server pointing to local commit-story-v2 install
+- [x] Create `.claude/settings.local.json` with `enabledMcpjsonServers` and `enableAllProjectMcpServers`
+- [x] Create empty `journal/` directory
+- [x] Verify MCP tools are available in Claude Code session
 
 ### M4: Commit-Story Git Hook
 Install the post-commit hook so journal entries are generated automatically after each commit.
