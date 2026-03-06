@@ -39,7 +39,8 @@ Verify all changes work end-to-end, rebuild container images with the improvemen
 - [x] Character is consistent across all story parts and variants
 - [x] Synchronized loading works with paired variants
 - [x] Rebuild and push all 4 container images to Docker Hub
-- [ ] Human verification of story quality and pacing
+- [ ] Human verification of Round 1 (moon/space) story quality and pacing
+- [ ] Human verification of Round 2 (circus) story quality and pacing
 
 ### M4: Documentation
 Use `/write-docs` to update documentation reflecting all changes.
