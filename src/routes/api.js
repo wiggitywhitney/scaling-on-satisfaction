@@ -8,6 +8,7 @@ import { emitEvaluationEvent } from '../telemetry.js';
 
 const sessions = new Map();
 let currentPart = 0;
+let readyAt = 0;
 
 export function getCurrentPart() {
   return currentPart;
@@ -16,6 +17,11 @@ export function getCurrentPart() {
 export function resetState() {
   sessions.clear();
   currentPart = 0;
+  readyAt = 0;
+}
+
+function isReady() {
+  return readyAt === 0 || Date.now() >= readyAt;
 }
 
 function getSession(req, res) {
@@ -37,7 +43,7 @@ export function createApiRouter(generator) {
     const generatedParts = session
       ? Object.keys(session.parts).map(Number).sort((a, b) => a - b)
       : [];
-    res.json({ totalParts: TOTAL_PARTS, generatedParts, currentPart });
+    res.json({ totalParts: TOTAL_PARTS, generatedParts, currentPart, ready: isReady() });
   });
 
   router.get('/story/:part', async (req, res) => {
@@ -147,13 +153,14 @@ export function createApiRouter(generator) {
   return router;
 }
 
-async function forwardToVariants(path, secret) {
+async function forwardToVariants(path, secret, forwardReadyAt) {
   const results = [];
   for (const baseUrl of config.variantUrls) {
     let url = `${baseUrl.replace(/\/$/, '')}/api/admin/${path}`;
-    if (secret) {
-      url += `?secret=${encodeURIComponent(secret)}`;
-    }
+    const params = [];
+    if (secret) params.push(`secret=${encodeURIComponent(secret)}`);
+    if (forwardReadyAt) params.push(`readyAt=${forwardReadyAt}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
     try {
       const res = await fetch(url, { method: 'POST' });
       const data = await res.json();
@@ -179,13 +186,18 @@ export function createAdminRouter() {
     if (currentPart >= TOTAL_PARTS) {
       return res.status(400).json({ error: 'Already at the last part', currentPart });
     }
+
+    const providedReadyAt = req.query.readyAt ? parseInt(req.query.readyAt, 10) : null;
+    readyAt = providedReadyAt || (config.syncDelayMs > 0 ? Date.now() + config.syncDelayMs : 0);
+
     currentPart++;
-    const variants = await forwardToVariants('advance', req.query.secret);
-    res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
+    const variants = await forwardToVariants('advance', req.query.secret, readyAt);
+    res.json({ currentPart, totalParts: TOTAL_PARTS, readyAt, variants });
   });
 
   router.post('/reset', requireSecret, async (req, res) => {
     currentPart = 0;
+    readyAt = 0;
     sessions.clear();
     const variants = await forwardToVariants('reset', req.query.secret);
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
@@ -198,6 +210,8 @@ export function createAdminRouter() {
       sessions: sessions.size,
       style: config.variantStyle,
       round: config.round,
+      ready: isReady(),
+      readyAt,
     });
   });
 

@@ -121,4 +121,95 @@ describe('poll controller', () => {
 
     expect(fetchStoryPart).not.toHaveBeenCalled();
   });
+
+  describe('synchronized loading', () => {
+    let onWaitingForReady;
+
+    beforeEach(() => {
+      onWaitingForReady = vi.fn();
+      controller = createPollController({
+        fetchStoryStatus,
+        fetchStoryPart,
+        onPart,
+        onLoading,
+        onError,
+        onWaitingForReady,
+      });
+    });
+
+    it('holds content when story is fetched but ready is false', async () => {
+      fetchStoryStatus.mockResolvedValue({ currentPart: 1, ready: false });
+      fetchStoryPart.mockResolvedValue({ part: 1, text: 'Story', totalParts: 5, vote: null });
+
+      await controller.poll();
+      await vi.waitFor(() => expect(fetchStoryPart).toHaveBeenCalled());
+
+      expect(onPart).not.toHaveBeenCalled();
+      expect(onWaitingForReady).toHaveBeenCalled();
+    });
+
+    it('shows content immediately when ready is true', async () => {
+      fetchStoryStatus.mockResolvedValue({ currentPart: 1, ready: true });
+      fetchStoryPart.mockResolvedValue({ part: 1, text: 'Story', totalParts: 5, vote: null });
+
+      await controller.poll();
+      await vi.waitFor(() => expect(onPart).toHaveBeenCalled());
+
+      expect(onWaitingForReady).not.toHaveBeenCalled();
+    });
+
+    it('releases held content when ready becomes true on subsequent poll', async () => {
+      fetchStoryStatus.mockResolvedValueOnce({ currentPart: 1, ready: false });
+      fetchStoryPart.mockResolvedValue({ part: 1, text: 'Story', totalParts: 5, vote: null });
+
+      await controller.poll();
+      await vi.waitFor(() => expect(onWaitingForReady).toHaveBeenCalled());
+      expect(onPart).not.toHaveBeenCalled();
+
+      fetchStoryStatus.mockResolvedValueOnce({ currentPart: 1, ready: true });
+      await controller.poll();
+
+      expect(onPart).toHaveBeenCalledWith({ part: 1, text: 'Story', totalParts: 5, vote: null });
+    });
+
+    it('does not re-fetch story when releasing held content', async () => {
+      fetchStoryStatus.mockResolvedValueOnce({ currentPart: 1, ready: false });
+      fetchStoryPart.mockResolvedValue({ part: 1, text: 'Story', totalParts: 5, vote: null });
+
+      await controller.poll();
+      await vi.waitFor(() => expect(fetchStoryPart).toHaveBeenCalledTimes(1));
+
+      fetchStoryStatus.mockResolvedValueOnce({ currentPart: 1, ready: true });
+      await controller.poll();
+
+      expect(fetchStoryPart).toHaveBeenCalledTimes(1);
+      expect(onPart).toHaveBeenCalledTimes(1);
+    });
+
+    it('works without onWaitingForReady callback (backward compat)', async () => {
+      controller = createPollController({
+        fetchStoryStatus,
+        fetchStoryPart,
+        onPart,
+        onLoading,
+        onError,
+      });
+
+      fetchStoryStatus.mockResolvedValue({ currentPart: 1, ready: false });
+      fetchStoryPart.mockResolvedValue({ part: 1, text: 'Story', totalParts: 5, vote: null });
+
+      await controller.poll();
+      await vi.waitFor(() => expect(fetchStoryPart).toHaveBeenCalled());
+
+      expect(onPart).not.toHaveBeenCalled();
+    });
+
+    it('treats missing ready field as ready (backward compat)', async () => {
+      fetchStoryStatus.mockResolvedValue({ currentPart: 1 });
+      fetchStoryPart.mockResolvedValue({ part: 1, text: 'Story', totalParts: 5, vote: null });
+
+      await controller.poll();
+      await vi.waitFor(() => expect(onPart).toHaveBeenCalled());
+    });
+  });
 });

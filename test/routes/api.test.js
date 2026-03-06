@@ -746,6 +746,143 @@ describe('API routes', () => {
     });
   });
 
+  describe('synchronized variant loading', () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      config.syncDelayMs = 0;
+      config.variantUrls = [];
+      global.fetch = originalFetch;
+    });
+
+    it('story status includes ready: true by default', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/story/status');
+      expect(res.body.ready).toBe(true);
+    });
+
+    it('admin status includes ready: true by default', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/status');
+      expect(res.body.ready).toBe(true);
+    });
+
+    it('status shows ready: false during sync window after advance', async () => {
+      config.syncDelayMs = 60000;
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      const res = await request(app, '/api/story/status');
+      expect(res.body.ready).toBe(false);
+    });
+
+    it('admin status shows ready: false during sync window', async () => {
+      config.syncDelayMs = 60000;
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      const res = await request(app, '/api/admin/status');
+      expect(res.body.ready).toBe(false);
+      expect(res.body.readyAt).toBeGreaterThan(Date.now() - 1000);
+    });
+
+    it('status shows ready: true when syncDelayMs is 0', async () => {
+      config.syncDelayMs = 0;
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      const res = await request(app, '/api/story/status');
+      expect(res.body.ready).toBe(true);
+    });
+
+    it('reset clears readyAt so status shows ready: true', async () => {
+      config.syncDelayMs = 60000;
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      await request(app, '/api/admin/reset', { method: 'POST' });
+      const res = await request(app, '/api/story/status');
+      expect(res.body.ready).toBe(true);
+    });
+
+    it('advance forwards readyAt to variants when syncDelayMs > 0', async () => {
+      config.syncDelayMs = 5000;
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toMatch(/readyAt=\d+/);
+    });
+
+    it('advance does not forward readyAt when syncDelayMs is 0', async () => {
+      config.syncDelayMs = 0;
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).not.toMatch(/readyAt/);
+    });
+
+    it('variant uses readyAt from query param instead of calculating its own', async () => {
+      const futureTimestamp = Date.now() + 60000;
+      const app = buildApp(mockGenerator);
+      await request(app, `/api/admin/advance?readyAt=${futureTimestamp}`, { method: 'POST' });
+
+      const res = await request(app, '/api/story/status');
+      expect(res.body.ready).toBe(false);
+    });
+
+    it('advance response includes readyAt', async () => {
+      config.syncDelayMs = 5000;
+      const app = buildApp(mockGenerator);
+      const before = Date.now();
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.body.readyAt).toBeGreaterThanOrEqual(before + 5000);
+    });
+
+    it('coordinator still advances when variant fails during sync', async () => {
+      config.syncDelayMs = 5000;
+      config.variantUrls = ['http://unreachable:8080'];
+      global.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBe(1);
+      expect(res.body.readyAt).toBeGreaterThan(0);
+      expect(res.body.variants[0].ok).toBe(false);
+    });
+
+    it('coordinator still advances when variant times out during sync', async () => {
+      config.syncDelayMs = 5000;
+      config.variantUrls = ['http://slow:8080'];
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 50))
+      );
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/advance', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBe(1);
+      expect(res.body.variants[0].ok).toBe(false);
+      expect(res.body.variants[0].error).toMatch(/timeout/);
+    });
+  });
+
   describe('GET /admin/status includes style and round', () => {
     it('returns style and round in status response', async () => {
       const app = buildApp(mockGenerator);

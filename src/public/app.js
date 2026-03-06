@@ -10,6 +10,7 @@ const welcome = document.getElementById('welcome');
 const story = document.getElementById('story');
 const storyText = document.getElementById('story-text');
 const loading = document.getElementById('loading');
+const preparing = document.getElementById('preparing');
 const waiting = document.getElementById('waiting');
 const progress = document.getElementById('progress');
 const voteButtons = document.getElementById('vote-buttons');
@@ -66,6 +67,7 @@ voteBtns.forEach((btn) => {
 
 function showWaitingForNext() {
   loading.classList.remove('active');
+  preparing.classList.remove('active');
   storyText.classList.remove('visible');
   waiting.classList.add('active');
   hideVoteButtons();
@@ -86,14 +88,25 @@ const controller = createPollController({
     welcome.classList.add('hidden');
     story.classList.add('active');
     waiting.classList.remove('active');
+    preparing.classList.remove('active');
     storyText.classList.remove('visible');
     loading.classList.add('active');
+    hideVoteButtons();
+  },
+  onWaitingForReady: () => {
+    welcome.classList.add('hidden');
+    story.classList.add('active');
+    loading.classList.remove('active');
+    waiting.classList.remove('active');
+    storyText.classList.remove('visible');
+    preparing.classList.add('active');
     hideVoteButtons();
   },
   onPart: (data) => {
     welcome.classList.add('hidden');
     story.classList.add('active');
     loading.classList.remove('active');
+    preparing.classList.remove('active');
     waiting.classList.remove('active');
     storyText.textContent = data.text;
     storyText.classList.add('visible');

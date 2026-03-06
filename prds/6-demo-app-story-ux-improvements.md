@@ -27,10 +27,10 @@ Use `/write-prompt` to craft new story generation prompts. Introduce a named mai
 ### M2: Synchronized Variant Loading
 Both variants generate and become ready before the audience sees content. No more one variant showing while the other is still generating.
 
-- [ ] Coordinator waits for both variants to complete generation before signaling ready
-- [ ] Audience UI shows a loading state until both variants are ready
-- [ ] Admin panel reflects synchronized ready state
-- [ ] Handles the case where one variant fails or times out
+- [x] Coordinator waits for both variants to complete generation before signaling ready
+- [x] Audience UI shows a loading state until both variants are ready
+- [x] Admin panel reflects synchronized ready state
+- [x] Handles the case where one variant fails or times out
 
 ### M3: Verification & Image Rebuild
 Verify all changes work end-to-end, rebuild container images with the improvements.
@@ -72,6 +72,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 | 2026-03-06 | Rae Okonkwo for Round 2 (circus) character | Backend developer, keyboard warrior, fish out of water — contrast with physical circus setting |
 | 2026-03-06 | Separate characters per round (not one shared character) | Each story is more self-contained with its own character |
 | 2026-03-06 | Improved circus spatial grounding in R2 parts 2-4 | Rae stays in center ring tank, acts happen in adjacent rings — clearer physical layout |
+| 2026-03-06 | Timer-gated sync (SYNC_DELAY_MS) instead of shared stories | Keep unique per-session stories; configurable delay gates display so both variants show at roughly the same time |
 
 ## Future Considerations
 

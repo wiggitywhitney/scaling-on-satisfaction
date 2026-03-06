@@ -98,12 +98,32 @@
     .variant-sync { color: #2ecc71; }
     .variant-lag { color: #f1c40f; }
     .variant-err { color: #e74c3c; }
+    .sync-status {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .sync-status.preparing {
+      background: #3a3520;
+      color: #f1c40f;
+    }
+    .sync-status.ready {
+      background: #1a3a1a;
+      color: #2ecc71;
+    }
+    .sync-status.hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Presenter Controls</h1>
   <div class="status" id="status">0 / 5</div>
   <div class="status-label">current part</div>
+  <div class="sync-status hidden" id="sync-status"></div>
   <button class="btn-advance" id="btn-advance">Advance to Next Part</button>
   <button class="btn-reset" id="btn-reset">Reset</button>
   <div class="info" id="info"></div>
@@ -115,6 +135,7 @@
     const btnReset = document.getElementById('btn-reset');
     const info = document.getElementById('info');
     const variantsEl = document.getElementById('variants');
+    const syncStatusEl = document.getElementById('sync-status');
 
     let mainCurrentPart = 0;
     let mainStatus = null;
@@ -132,6 +153,16 @@
         status.textContent = `${data.currentPart} / ${data.totalParts}`;
         btnAdvance.disabled = data.currentPart >= data.totalParts;
         info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
+        if (data.readyAt && !data.ready) {
+          const remaining = Math.max(0, Math.ceil((data.readyAt - Date.now()) / 1000));
+          syncStatusEl.textContent = `Preparing... ${remaining}s`;
+          syncStatusEl.className = 'sync-status preparing';
+        } else if (data.currentPart > 0) {
+          syncStatusEl.textContent = 'Ready';
+          syncStatusEl.className = 'sync-status ready';
+        } else {
+          syncStatusEl.className = 'sync-status hidden';
+        }
       } catch {
         info.textContent = 'Status unavailable';
       }

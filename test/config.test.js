@@ -122,4 +122,17 @@ describe('config', () => {
     const { default: config } = await import('../src/config.js?' + Date.now());
     expect(config.minGenerationDelayMs).toBe(3000);
   });
+
+  it('defaults syncDelayMs to 0', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.syncDelayMs).toBe(0);
+  });
+
+  it('reads SYNC_DELAY_MS from environment', async () => {
+    process.env.SYNC_DELAY_MS = '8000';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.syncDelayMs).toBe(8000);
+  });
 });
