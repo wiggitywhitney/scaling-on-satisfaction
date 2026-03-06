@@ -11,3 +11,6 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Audience UI "Getting ready..." state during sync window
 - Coordinator forwards readyAt timestamp to variants on advance
 - Variant failure/timeout handling during synchronized advance
+- Acceptance gate tests calling real Anthropic API (story generation verification)
+- Playwright E2E tests for synchronized variant loading (10 tests)
+- vals exec wrapper script for acceptance test PATH handling

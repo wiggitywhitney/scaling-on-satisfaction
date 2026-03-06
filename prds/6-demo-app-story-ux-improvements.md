@@ -35,9 +35,9 @@ Both variants generate and become ready before the audience sees content. No mor
 ### M3: Verification & Image Rebuild
 Verify all changes work end-to-end, rebuild container images with the improvements.
 
-- [ ] Stories generate at ~100 words per part (both rounds, all variants)
-- [ ] Character is consistent across all story parts and variants
-- [ ] Synchronized loading works with paired variants
+- [x] Stories generate at ~100 words per part (both rounds, all variants)
+- [x] Character is consistent across all story parts and variants
+- [x] Synchronized loading works with paired variants
 - [ ] Rebuild and push all 4 container images to Docker Hub
 - [ ] Human verification of story quality and pacing
 
@@ -50,9 +50,9 @@ Use `/write-docs` to update documentation reflecting all changes.
 
 ## Success Criteria
 
-- [ ] Stories are ~100 words per part (down from current length)
-- [ ] A named, human-approved character appears consistently across all variants
-- [ ] Both variants are ready before audience sees content (no loading lag)
+- [x] Stories are ~100 words per part (down from current length)
+- [x] A named, human-approved character appears consistently across all variants
+- [x] Both variants are ready before audience sees content (no loading lag)
 - [ ] All 4 container images rebuilt and pushed with improvements
 - [ ] Documentation reflects current behavior
 
