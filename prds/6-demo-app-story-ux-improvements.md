@@ -18,11 +18,11 @@ Shorten story generation to ~100 words per part, introduce a named main characte
 ### M1: Character Design & Story Prompt Improvements
 Use `/write-prompt` to craft new story generation prompts. Introduce a named main character with background. Shorten target to ~100 words per part. **Requires human approval on character choice before implementing.**
 
-- [ ] Design character concept (name, background, personality) — present options to Whitney for approval
-- [ ] Use `/write-prompt` to update story generation prompts with character and ~100 word target
-- [ ] Both round 1 styles (dry vs funny) use the same character
-- [ ] Both round 2 models use the same character
-- [ ] Story arc continuity preserved across all variants
+- [x] Design character concept (name, background, personality) — present options to Whitney for approval
+- [x] Use `/write-prompt` to update story generation prompts with character and ~100 word target
+- [x] Both round 1 styles (dry vs funny) use the same character
+- [x] Both round 2 models use the same character
+- [x] Story arc continuity preserved across all variants
 
 ### M2: Synchronized Variant Loading
 Both variants generate and become ready before the audience sees content. No more one variant showing while the other is still generating.
@@ -68,6 +68,10 @@ Use `/write-docs` to update documentation reflecting all changes.
 | 2026-03-05 | Knative manifests live in Thomas's gitops repo only | Avoid maintaining duplicate manifests; Flux reconciles from Thomas's repo |
 | 2026-03-05 | ESO + GSM for Anthropic key management | Whitney already uses GSM via vals; ESO syncs secrets without storing plaintext in git or leaving keys exposed in-cluster |
 | 2026-03-05 | Backup model provider is a separate PRD | Different concern (resilience vs. UX); nice-to-have, not blocking |
+| 2026-03-06 | Nyx Vasquez for Round 1 (moon) character | Panicky, narrates disasters, always lands on feet — emotive/chaotic personality makes the story more interesting |
+| 2026-03-06 | Rae Okonkwo for Round 2 (circus) character | Backend developer, keyboard warrior, fish out of water — contrast with physical circus setting |
+| 2026-03-06 | Separate characters per round (not one shared character) | Each story is more self-contained with its own character |
+| 2026-03-06 | Improved circus spatial grounding in R2 parts 2-4 | Rae stays in center ring tank, acts happen in adjacent rings — clearer physical layout |
 
 ## Future Considerations
 

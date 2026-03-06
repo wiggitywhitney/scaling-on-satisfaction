@@ -34,7 +34,7 @@ describe('prompts', () => {
 
     it('includes word count constraint in system message', () => {
       const prompt = buildPrompt(1, 'funny');
-      expect(prompt.system).toMatch(/150/);
+      expect(prompt.system).toMatch(/100/);
     });
 
     it('bans "Houston, we have a problem"', () => {
@@ -141,6 +141,27 @@ describe('prompts', () => {
       expect(prompt.user).not.toMatch(/previously happened|story so far/i);
     });
 
+    it('includes Nyx Vasquez character in round 1 funny prompts', () => {
+      const prompt = buildPrompt(1, 'funny');
+      const content = prompt.system + ' ' + prompt.user;
+      expect(content).toMatch(/Nyx/i);
+    });
+
+    it('includes Nyx Vasquez character in round 1 dry prompts', () => {
+      const prompt = buildPrompt(1, 'dry');
+      const content = prompt.system + ' ' + prompt.user;
+      expect(content).toMatch(/Nyx/i);
+    });
+
+    it('uses Nyx consistently across all round 1 parts', () => {
+      for (let part = 1; part <= 5; part++) {
+        const funny = buildPrompt(part, 'funny');
+        const dry = buildPrompt(part, 'dry');
+        expect(funny.system + ' ' + funny.user).toMatch(/Nyx/i);
+        expect(dry.system + ' ' + dry.user).toMatch(/Nyx/i);
+      }
+    });
+
     it('throws for invalid part numbers', () => {
       expect(() => buildPrompt(0, 'funny')).toThrow();
       expect(() => buildPrompt(6, 'funny')).toThrow();
@@ -211,7 +232,7 @@ describe('prompts', () => {
 
     it('includes word count constraint', () => {
       const prompt = buildPrompt(1, 'funny', 2);
-      expect(prompt.system).toMatch(/150/);
+      expect(prompt.system).toMatch(/100/);
     });
 
     it('instructs to lead with physical reality', () => {
@@ -292,6 +313,27 @@ describe('prompts', () => {
       expect(p2).toMatch(/breath|chest|air supply/i);
       expect(p3).toMatch(/lightheaded|struggling/i);
       expect(p4).toMatch(/near death|black out|consciousness/i);
+    });
+
+    it('includes Rae Okonkwo character in round 2 funny prompts', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      const content = prompt.system + ' ' + prompt.user;
+      expect(content).toMatch(/Rae/i);
+    });
+
+    it('includes Rae Okonkwo character in round 2 dry prompts', () => {
+      const prompt = buildPrompt(1, 'dry', 2);
+      const content = prompt.system + ' ' + prompt.user;
+      expect(content).toMatch(/Rae/i);
+    });
+
+    it('uses Rae consistently across all round 2 parts', () => {
+      for (let part = 1; part <= 5; part++) {
+        const funny = buildPrompt(part, 'funny', 2);
+        const dry = buildPrompt(part, 'dry', 2);
+        expect(funny.system + ' ' + funny.user).toMatch(/Rae/i);
+        expect(dry.system + ' ' + dry.user).toMatch(/Rae/i);
+      }
     });
 
     it('throws for invalid part numbers in round 2', () => {
