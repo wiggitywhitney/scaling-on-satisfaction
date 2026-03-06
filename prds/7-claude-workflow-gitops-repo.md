@@ -77,20 +77,20 @@ Set up CodeRabbit, autonomous PRD skills, and `/make-autonomous` so Whitney's fu
 ### M7: Verification
 End-to-end verification that everything works and nothing leaks.
 
-- [ ] `git status` is clean — no untracked or modified files from Whitney's tooling
-- [ ] `git diff` shows nothing
-- [ ] Commit-story journal captures entries on commit
-- [ ] Claude Code session has commit-story and CodeRabbit MCP tools available
-- [ ] PRD skills functional
-- [ ] A test commit and push shows zero evidence of Whitney's tooling
+- [x] `git status` is clean — no untracked or modified files from Whitney's tooling
+- [x] `git diff` shows nothing
+- [x] Commit-story journal captures entries on commit
+- [x] Claude Code session has commit-story and CodeRabbit MCP tools available
+- [x] PRD skills functional
+- [x] A test commit and push shows zero evidence of Whitney's tooling
 
 ## Success Criteria
 
-- [ ] Full Claude workflow operational in Thomas's repo
-- [ ] Zero visibility to Thomas — nothing in git status, diffs, commits, or PRs
-- [ ] Commit-story journal captures work locally
-- [ ] CodeRabbit CLI reviews code before push
-- [ ] Vals injects secrets as needed
+- [x] Full Claude workflow operational in Thomas's repo
+- [x] Zero visibility to Thomas — nothing in git status, diffs, commits, or PRs
+- [x] Commit-story journal captures work locally
+- [x] CodeRabbit CLI reviews code before push
+- [x] Vals injects secrets as needed
 
 ## Decision Log
 
