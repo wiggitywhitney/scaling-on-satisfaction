@@ -121,4 +121,7 @@ const controller = createPollController({
   },
 });
 
+// Eagerly pre-generate Part 1 so it's cached before admin advances
+fetch('/api/story/warmup', { method: 'POST' }).catch(() => {});
+
 setInterval(() => controller.poll(), POLL_INTERVAL_MS);

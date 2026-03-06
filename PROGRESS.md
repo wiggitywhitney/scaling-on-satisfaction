@@ -5,7 +5,7 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 ## [Unreleased]
 
 ### Added
-- Synchronized variant loading with configurable sync delay (SYNC_DELAY_MS)
+- Synchronized variant loading with readyAt timestamp forwarding
 - Timer-gated content display: audience stories generate during sync window but display is held until ready
 - Admin panel shows preparing/ready sync state with countdown
 - Audience UI "Getting ready..." state during sync window
@@ -14,3 +14,13 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Acceptance gate tests calling real Anthropic API (story generation verification)
 - Playwright E2E tests for synchronized variant loading (10 tests)
 - vals exec wrapper script for acceptance test PATH handling
+- Warmup endpoint pre-generates Part 1 on page load
+- Eager pre-generation of Part N+1 after serving Part N
+- Staggered pre-generation delay (PREGEN_DELAY_MS) to avoid API key rate-limit competition
+- Pre-generation retry with error logging on failure (PREGEN_RETRY_DELAY_MS)
+- Douglas Adams style for funny variant (both rounds)
+- Deadpan narrator style for dry variant (both rounds)
+
+### Changed
+- Removed SYNC_DELAY_MS config (replaced by warmup + pre-generation pipeline)
+- Simplified advance route to use readyAt query param only

@@ -123,16 +123,29 @@ describe('config', () => {
     expect(config.minGenerationDelayMs).toBe(3000);
   });
 
-  it('defaults syncDelayMs to 0', async () => {
+  it('defaults pregenDelayMs to 2000', async () => {
     process.env.ANTHROPIC_API_KEY = 'test-key';
     const { default: config } = await import('../src/config.js?' + Date.now());
-    expect(config.syncDelayMs).toBe(0);
+    expect(config.pregenDelayMs).toBe(2000);
   });
 
-  it('reads SYNC_DELAY_MS from environment', async () => {
-    process.env.SYNC_DELAY_MS = '8000';
+  it('reads PREGEN_DELAY_MS from environment', async () => {
+    process.env.PREGEN_DELAY_MS = '3000';
     process.env.ANTHROPIC_API_KEY = 'test-key';
     const { default: config } = await import('../src/config.js?' + Date.now());
-    expect(config.syncDelayMs).toBe(8000);
+    expect(config.pregenDelayMs).toBe(3000);
+  });
+
+  it('defaults pregenRetryDelayMs to 5000', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.pregenRetryDelayMs).toBe(5000);
+  });
+
+  it('reads PREGEN_RETRY_DELAY_MS from environment', async () => {
+    process.env.PREGEN_RETRY_DELAY_MS = '10000';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.pregenRetryDelayMs).toBe(10000);
   });
 });

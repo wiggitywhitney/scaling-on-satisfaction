@@ -73,6 +73,11 @@ Use `/write-docs` to update documentation reflecting all changes.
 | 2026-03-06 | Separate characters per round (not one shared character) | Each story is more self-contained with its own character |
 | 2026-03-06 | Improved circus spatial grounding in R2 parts 2-4 | Rae stays in center ring tank, acts happen in adjacent rings — clearer physical layout |
 | 2026-03-06 | Timer-gated sync (SYNC_DELAY_MS) instead of shared stories | Keep unique per-session stories; configurable delay gates display so both variants show at roughly the same time |
+| 2026-03-06 | Replace SYNC_DELAY_MS with warmup + pre-generation | Warmup pre-generates Part 1 on page load; serving Part N pre-generates Part N+1 in the background. Eliminates loading delays without a fixed sync timer |
+| 2026-03-06 | Stagger pre-generation (PREGEN_DELAY_MS, default 2s) | Two instances share one Anthropic API key; simultaneous pre-gen requests cause rate-limit competition. Stagger avoids alternating slow loads |
+| 2026-03-06 | Pre-gen retry on failure (PREGEN_RETRY_DELAY_MS, default 5s) | SDK retries 429/529 twice internally; application-level retry adds a second layer. Failed pre-gen is logged and retried once, then falls back to on-demand generation |
+| 2026-03-06 | Funny style: Douglas Adams voice | Replaced pun-based humor with Adams-style dry wit, editorial narrator, bemused detachment — better fit for the space/circus absurdity |
+| 2026-03-06 | Dry style: deadpan narrator voice | Replaced dense academic jargon with aviation-incident-report / nature-documentary tone — still formal but followable |
 
 ## Future Considerations
 

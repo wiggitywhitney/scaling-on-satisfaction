@@ -42,9 +42,9 @@ describe('prompts', () => {
       expect(prompt.system).toMatch(/never.*houston/i);
     });
 
-    it('requires at least one pun in funny style', () => {
+    it('references Douglas Adams style in funny variant', () => {
       const prompt = buildPrompt(1, 'funny');
-      expect(prompt.system).toMatch(/at least one pun/i);
+      expect(prompt.system).toMatch(/Douglas Adams/i);
     });
 
     it('limits similes in funny style to one per part', () => {
@@ -73,7 +73,7 @@ describe('prompts', () => {
     it('includes funny style instruction for funny variant', () => {
       const prompt = buildPrompt(1, 'funny');
       const combined = prompt.system + ' ' + prompt.user;
-      expect(combined).toMatch(/funny|engaging|humorous|humor/i);
+      expect(combined).toMatch(/Douglas Adams|dry wit|absurdity/i);
     });
 
     it('includes dry style instruction for dry variant', () => {
@@ -115,7 +115,7 @@ describe('prompts', () => {
     it('part 4 requires solving both problems and loneliness', () => {
       const prompt = buildPrompt(4, 'funny');
       const content = prompt.user;
-      expect(content).toMatch(/solves? both/i);
+      expect(content).toMatch(/solves? both|fixing these two|tackle both|restate the two problems/i);
       expect(content).toMatch(/nobody|lonely|alone|satisfaction survey/i);
     });
 

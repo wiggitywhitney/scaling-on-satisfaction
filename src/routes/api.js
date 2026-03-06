@@ -37,6 +37,43 @@ function getSession(req, res) {
 export function createApiRouter(generator) {
   const router = Router();
 
+  router.post('/story/warmup', (req, res) => {
+    const { session } = getSession(req, res);
+    res.json({ warming: true });
+
+    // Eagerly generate part 1 in the background after stagger delay
+    if (!session.parts[1]) {
+      const delay = config.pregenDelayMs;
+      const generate = () => generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
+        .then(result => {
+          if (!session.parts[1]) {
+            session.parts[1] = result;
+          }
+        })
+        .catch(err => {
+          console.error(`Pre-generation failed for part 1 (warmup): ${err.message}`);
+          // Retry once after delay
+          setTimeout(() => {
+            generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
+              .then(result => {
+                if (!session.parts[1]) {
+                  session.parts[1] = result;
+                }
+              })
+              .catch(retryErr => {
+                console.error(`Pre-generation retry failed for part 1 (warmup): ${retryErr.message}`);
+              });
+          }, config.pregenRetryDelayMs);
+        });
+
+      if (delay > 0) {
+        setTimeout(generate, delay);
+      } else {
+        generate();
+      }
+    }
+  });
+
   router.get('/story/status', (req, res) => {
     const sessionId = req.cookies.sessionId;
     const session = sessionId ? sessions.get(sessionId) : null;
@@ -97,6 +134,38 @@ export function createApiRouter(generator) {
         text: result.text,
         vote: session.parts[partNumber].vote || null,
       });
+
+      // Eagerly pre-generate the next part in the background after stagger delay
+      const nextPart = partNumber + 1;
+      if (nextPart <= TOTAL_PARTS && !session.parts[nextPart]) {
+        const generate = () => generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
+          .then(nextResult => {
+            if (!session.parts[nextPart]) {
+              session.parts[nextPart] = nextResult;
+            }
+          })
+          .catch(err => {
+            console.error(`Pre-generation failed for part ${nextPart}: ${err.message}`);
+            // Retry once after delay
+            setTimeout(() => {
+              generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
+                .then(nextResult => {
+                  if (!session.parts[nextPart]) {
+                    session.parts[nextPart] = nextResult;
+                  }
+                })
+                .catch(retryErr => {
+                  console.error(`Pre-generation retry failed for part ${nextPart}: ${retryErr.message}`);
+                });
+            }, config.pregenRetryDelayMs);
+          });
+
+        if (config.pregenDelayMs > 0) {
+          setTimeout(generate, config.pregenDelayMs);
+        } else {
+          generate();
+        }
+      }
     } catch (err) {
       res.status(500).json({ error: `Failed to generate story part: ${err.message}` });
     }
@@ -188,7 +257,7 @@ export function createAdminRouter() {
     }
 
     const providedReadyAt = req.query.readyAt ? parseInt(req.query.readyAt, 10) : null;
-    readyAt = providedReadyAt || (config.syncDelayMs > 0 ? Date.now() + config.syncDelayMs : 0);
+    readyAt = providedReadyAt || 0;
 
     currentPart++;
     const variants = await forwardToVariants('advance', req.query.secret, readyAt);
