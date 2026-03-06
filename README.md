@@ -9,8 +9,9 @@ A mobile-friendly web app that serves multi-part GenAI stories, collects audienc
 ### Round 1: A/B Test (Prompt Variants)
 
 **Theme:** "Platform Engineer on the Moon"
+**Character:** Nyx Vasquez — a panicky platform engineer who narrates their own disasters in real time but somehow always lands on their feet.
 
-Two apps tell the same 5-part story with different prompt styles. Same model, same beats, different tone.
+Two apps tell the same 5-part story (~100 words per part) with different prompt styles. Same model, same beats, different tone.
 
 | App | Style | Model |
 |-----|-------|-------|
@@ -22,8 +23,9 @@ Starting split: 50/50. Flagger shifts traffic toward the variant with higher sat
 ### Round 2: Canary Deployment (Model Upgrade)
 
 **Theme:** "Developer at the Clown Native Computing Foundation Circus"
+**Character:** Rae Okonkwo — a backend developer and keyboard warrior, completely out of their element performing a Houdini act at the circus.
 
-Two apps use the winning style from Round 1 but different models. Tests whether the expensive model is worth the cost.
+Two apps use the winning style from Round 1 but different models. Same 5-part story (~100 words per part). Tests whether the expensive model is worth the cost.
 
 | App | Style | Model |
 |-----|-------|-------|
@@ -101,6 +103,8 @@ This assumes `ANTHROPIC_API_KEY` is already set in your shell. The audience UI i
 |----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | | Anthropic API key for story generation |
 | `PORT` | `8080` | HTTP listen port |
+| `SYNC_DELAY_MS` | `0` | Milliseconds to gate story display after advance (synchronized loading) |
+| `MIN_GENERATION_DELAY_MS` | `0` | Minimum milliseconds before returning a generated story part |
 
 All other configuration (`VARIANT_STYLE`, `VARIANT_MODEL`, `ROUND`) is baked into container images at build time via the build scripts.
 
@@ -158,6 +162,14 @@ The presenter controls story pacing from `/admin`. The audience UI at `/` polls 
 When `ADMIN_SECRET` is set, the presenter bookmarks `/admin?secret=<value>` and mutation endpoints require the secret automatically.
 
 When `VARIANT_URLS` is set, a single advance/reset command forwards to all variant servers. The admin page shows per-variant status with sync indicators.
+
+## Synchronized Variant Loading
+
+During the live demo, both variants need to display story content at roughly the same time — otherwise one variant shows content while the other is still generating, creating an awkward pause.
+
+The `SYNC_DELAY_MS` environment variable gates story display. When the presenter advances to the next part, the coordinator sets a `readyAt` timestamp (`now + SYNC_DELAY_MS`) and forwards it to all variants. The audience UI polls `/api/story/status` and waits until the `ready` flag is `true` before requesting the story part. This gives both variants time to generate their unique stories before anyone sees content.
+
+Set `SYNC_DELAY_MS` high enough to cover the slowest expected generation time across both variants (e.g., `15000` for 15 seconds). Each audience member still gets a unique AI-generated story — the delay just ensures both variants are ready before the audience starts reading.
 
 ## Platform Integration
 

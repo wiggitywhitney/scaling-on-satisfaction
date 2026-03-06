@@ -44,9 +44,9 @@ Verify all changes work end-to-end, rebuild container images with the improvemen
 ### M4: Documentation
 Use `/write-docs` to update documentation reflecting all changes.
 
-- [ ] Update README with character info and new story length
-- [ ] Document synchronized loading behavior and configuration
-- [ ] Update any deployment docs affected by the changes
+- [x] Update README with character info and new story length
+- [x] Document synchronized loading behavior and configuration
+- [x] Update any deployment docs affected by the changes
 
 ## Success Criteria
 
@@ -54,7 +54,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 - [x] A named, human-approved character appears consistently across all variants
 - [x] Both variants are ready before audience sees content (no loading lag)
 - [x] All 4 container images rebuilt and pushed with improvements
-- [ ] Documentation reflects current behavior
+- [x] Documentation reflects current behavior
 
 ## Decision Log
 
