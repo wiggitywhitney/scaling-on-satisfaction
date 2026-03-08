@@ -14,6 +14,7 @@ echo "Building Round 1 images..."
 
 echo "  App 1a (dry/academic)..."
 docker build \
+  --platform linux/amd64 \
   --build-arg VARIANT_STYLE=dry \
   --build-arg ROUND=1 \
   -t "${REGISTRY}-1a:${TAG}" \
@@ -21,6 +22,7 @@ docker build \
 
 echo "  App 1b (funny/engaging)..."
 docker build \
+  --platform linux/amd64 \
   --build-arg VARIANT_STYLE=funny \
   --build-arg ROUND=1 \
   -t "${REGISTRY}-1b:${TAG}" \

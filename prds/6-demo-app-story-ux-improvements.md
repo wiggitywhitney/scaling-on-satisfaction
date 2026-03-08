@@ -48,6 +48,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 - [x] Update README with character info and new story length
 - [x] Document synchronized loading behavior and configuration
 - [x] Update any deployment docs affected by the changes
+- [ ] Update README with `/write-docs` to reflect pre-generation pipeline, Douglas Adams style, removed SYNC_DELAY_MS, and rebuilt images
 
 ## Success Criteria
 

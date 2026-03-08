@@ -19,6 +19,7 @@ echo "Building Round 2 images (style: ${STYLE})..."
 
 echo "  App 2a (cheap model: ${CHEAP_MODEL})..."
 docker build \
+  --platform linux/amd64 \
   --build-arg VARIANT_STYLE="${STYLE}" \
   --build-arg VARIANT_MODEL="${CHEAP_MODEL}" \
   --build-arg ROUND=2 \
@@ -28,6 +29,7 @@ docker build \
 
 echo "  App 2b (expensive model: ${EXPENSIVE_MODEL})..."
 docker build \
+  --platform linux/amd64 \
   --build-arg VARIANT_STYLE="${STYLE}" \
   --build-arg VARIANT_MODEL="${EXPENSIVE_MODEL}" \
   --build-arg ROUND=2 \
