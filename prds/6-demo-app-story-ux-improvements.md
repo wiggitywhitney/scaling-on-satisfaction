@@ -1,7 +1,7 @@
 # PRD #6: Demo App Story & UX Improvements
 
 **GitHub Issue**: [#6](https://github.com/wiggitywhitney/scaling-on-satisfaction/issues/6)
-**Status**: Active
+**Status**: Complete
 **Priority**: High
 **Depends On**: PRD #1 (complete), PRD #4 (complete)
 

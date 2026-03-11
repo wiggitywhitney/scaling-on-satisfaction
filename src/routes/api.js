@@ -177,9 +177,9 @@ export function createApiRouter(generator) {
             })
             .catch(err => {
               console.error(`Pre-generation failed for part ${nextPart}: ${err.message}`);
-              // Retry once after delay
+              // Retry once after delay — track retry in inFlightGenerations to prevent duplicates
               setTimeout(() => {
-                generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
+                const retryPromise = generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
                   .then(nextResult => {
                     if (!sharedStory.has(nextPart)) {
                       sharedStory.set(nextPart, nextResult);
@@ -187,10 +187,14 @@ export function createApiRouter(generator) {
                   })
                   .catch(retryErr => {
                     console.error(`Pre-generation retry failed for part ${nextPart}: ${retryErr.message}`);
-                  });
+                  })
+                  .finally(() => inFlightGenerations.delete(nextPart));
+                inFlightGenerations.set(nextPart, retryPromise);
               }, config.pregenRetryDelayMs);
             })
-            .finally(() => inFlightGenerations.delete(nextPart));
+            .catch(() => {
+              // Swallow — retry handler above manages cleanup
+            });
         };
 
         if (config.pregenDelayMs > 0) {
