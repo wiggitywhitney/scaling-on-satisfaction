@@ -115,5 +115,28 @@ describe('telemetry', () => {
       const [, options] = _mockTracer.startActiveSpan.mock.calls[0];
       expect(options.links).toEqual([]);
     });
+
+    it('includes story.part attribute when partNumber is provided', () => {
+      emitEvaluationEvent({
+        vote: 'thumbs_up',
+        responseId: 'msg_abc123',
+        generationSpanContext: { traceId: 't', spanId: 's', traceFlags: 1 },
+        partNumber: 3,
+      });
+
+      const [, attributes] = _mockSpan.addEvent.mock.calls[0];
+      expect(attributes['story.part']).toBe(3);
+    });
+
+    it('omits story.part attribute when partNumber is not provided', () => {
+      emitEvaluationEvent({
+        vote: 'thumbs_up',
+        responseId: 'msg_abc123',
+        generationSpanContext: { traceId: 't', spanId: 's', traceFlags: 1 },
+      });
+
+      const [, attributes] = _mockSpan.addEvent.mock.calls[0];
+      expect(attributes).not.toHaveProperty('story.part');
+    });
   });
 });

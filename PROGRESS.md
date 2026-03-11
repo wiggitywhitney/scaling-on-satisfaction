@@ -24,6 +24,7 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Admin pre-generate endpoint (POST /api/admin/pre-generate) generates all 5 parts before demo
 - In-flight deduplication for on-demand generation (concurrent requests share one LLM call)
 - Admin status includes sharedStoryParts array showing pre-generated parts
+- Vote telemetry includes `story.part` attribute in `gen_ai.evaluation.result` span events for per-part satisfaction analysis
 
 ### Changed
 - Removed SYNC_DELAY_MS config (replaced by warmup + pre-generation pipeline)

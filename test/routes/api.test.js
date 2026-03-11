@@ -430,6 +430,7 @@ describe('API routes', () => {
         vote: 'thumbs_up',
         responseId: 'msg_test_001',
         generationSpanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
+        partNumber: 1,
       });
     });
 
@@ -450,6 +451,7 @@ describe('API routes', () => {
         vote: 'thumbs_down',
         responseId: 'msg_test_001',
         generationSpanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
+        partNumber: 1,
       });
     });
 
@@ -466,6 +468,7 @@ describe('API routes', () => {
         vote: 'thumbs_up',
         responseId: 'msg_test_001',
         generationSpanContext: null,
+        partNumber: 1,
       });
     });
 

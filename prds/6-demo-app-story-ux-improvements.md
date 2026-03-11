@@ -53,8 +53,8 @@ Remove in-memory sessions so the app can scale horizontally. Flagger needs to ad
 ### M5: Add Story Part to Vote Telemetry
 Add the story part number to the `gen_ai.evaluation.result` span event so the Datadog dashboard can show satisfaction broken down by part (e.g., "Part 3 always gets thumbs down because it's the cliffhanger").
 
-- [ ] Pass `partNumber` to `emitEvaluationEvent()` in `src/routes/api.js`
-- [ ] Add `story.part` attribute to the span event in `src/telemetry.js`
+- [x] Pass `partNumber` to `emitEvaluationEvent()` in `src/routes/api.js`
+- [x] Add `story.part` attribute to the span event in `src/telemetry.js`
 
 ### M6: Verification & Image Rebuild
 Verify all changes work end-to-end, rebuild container images with the improvements.

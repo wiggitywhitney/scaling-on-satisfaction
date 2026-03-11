@@ -215,6 +215,7 @@ export function createApiRouter(generator) {
       vote,
       responseId,
       generationSpanContext: spanContext || null,
+      partNumber,
     });
 
     res.json({
