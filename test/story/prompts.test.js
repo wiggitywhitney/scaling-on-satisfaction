@@ -175,9 +175,13 @@ describe('prompts', () => {
       expect(() => buildPrompt(1, 'funny', 0)).toThrow(/Invalid round/);
     });
 
-    it('throws for invalid style', () => {
+    it('throws for invalid style in round 1', () => {
       expect(() => buildPrompt(1, 'nonexistent', 1)).toThrow(/Invalid style/);
-      expect(() => buildPrompt(1, 'dramatic', 2)).toThrow(/Invalid style/);
+    });
+
+    it('accepts any style in round 2 (always uses funny)', () => {
+      const result = buildPrompt(1, 'dramatic', 2);
+      expect(result.system).toMatch(/Douglas Adams/);
     });
 
     it('defaults to round 1 when round not specified', () => {
@@ -197,13 +201,11 @@ describe('prompts', () => {
       }
     });
 
-    it('builds valid prompts for both styles', () => {
-      for (let part = 1; part <= 5; part++) {
-        const funny = buildPrompt(part, 'funny', 2);
-        const dry = buildPrompt(part, 'dry', 2);
-        expect(funny.system.length).toBeGreaterThan(0);
-        expect(dry.system.length).toBeGreaterThan(0);
-      }
+    it('uses funny style regardless of style parameter', () => {
+      const funny = buildPrompt(1, 'funny', 2);
+      const dry = buildPrompt(1, 'dry', 2);
+      expect(funny.system).toBe(dry.system);
+      expect(funny.user).toBe(dry.user);
     });
 
     it('includes "Clown Native Computing Foundation" in system message', () => {
@@ -240,12 +242,9 @@ describe('prompts', () => {
       expect(prompt.system).toMatch(/physically happening/i);
     });
 
-    it('changes content based on style parameter', () => {
-      const funny = buildPrompt(1, 'funny', 2);
-      const dry = buildPrompt(1, 'dry', 2);
-      const funnyContent = funny.system + funny.user;
-      const dryContent = dry.system + dry.user;
-      expect(funnyContent).not.toBe(dryContent);
+    it('includes Douglas Adams style instruction', () => {
+      const prompt = buildPrompt(1, 'funny', 2);
+      expect(prompt.system).toMatch(/Douglas Adams/);
     });
 
     it('round 2 content differs from round 1', () => {
@@ -321,18 +320,10 @@ describe('prompts', () => {
       expect(content).toMatch(/Rae/i);
     });
 
-    it('includes Rae Okonkwo character in round 2 dry prompts', () => {
-      const prompt = buildPrompt(1, 'dry', 2);
-      const content = prompt.system + ' ' + prompt.user;
-      expect(content).toMatch(/Rae/i);
-    });
-
     it('uses Rae consistently across all round 2 parts', () => {
       for (let part = 1; part <= 5; part++) {
-        const funny = buildPrompt(part, 'funny', 2);
-        const dry = buildPrompt(part, 'dry', 2);
-        expect(funny.system + ' ' + funny.user).toMatch(/Rae/i);
-        expect(dry.system + ' ' + dry.user).toMatch(/Rae/i);
+        const prompt = buildPrompt(part, 'funny', 2);
+        expect(prompt.system + ' ' + prompt.user).toMatch(/Rae/i);
       }
     });
 

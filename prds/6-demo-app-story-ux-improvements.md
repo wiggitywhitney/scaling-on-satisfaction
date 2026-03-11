@@ -56,20 +56,33 @@ Add the story part number to the `gen_ai.evaluation.result` span event so the Da
 - [x] Pass `partNumber` to `emitEvaluationEvent()` in `src/routes/api.js`
 - [x] Add `story.part` attribute to the span event in `src/telemetry.js`
 
-### M6: Verification & Image Rebuild
-Verify all changes work end-to-end, rebuild container images with the improvements.
+### M6: Playwright E2E Verification
+Expand Playwright e2e tests to automate story verification for both rounds. Tests run against live instances with real LLM calls. Pass all Playwright tests before human review.
 
 - [x] Stories generate at ~100 words per part (both rounds, all variants)
 - [x] Character is consistent across all story parts and variants
 - [x] Synchronized loading works with paired variants
 - [x] Shared story serving works (all users see same story)
 - [x] App is stateless (no per-user sessions)
-- [ ] `story.part` attribute appears in OTel span events
-- [ ] Rebuild and push all 4 container images to Docker Hub
+- [x] `story.part` attribute appears in OTel span events
+- [x] Update existing e2e tests for shared-story stateless architecture
+- [ ] Round 1 e2e: admin advances through all 5 parts, both variants show stories, vote buttons work
+- [ ] Round 2 e2e: admin advances through all 5 parts, both model variants show stories, variant labels show model names (Haiku/Opus)
+- [ ] E2e test verifies pre-generation (warmup on page load, next-part pre-gen after serving)
+- [ ] All Playwright e2e tests pass
+
+### M7: Human Verification
+Human reviews story quality and pacing after Playwright tests pass.
+
 - [ ] Human verification of Round 1 (moon/space) story quality and pacing
 - [ ] Human verification of Round 2 (circus) story quality and pacing
 
-### M7: Documentation
+### M8: Image Rebuild & Push
+Rebuild and push all 4 container images after verification passes.
+
+- [ ] Rebuild and push all 4 container images to Docker Hub
+
+### M9: Documentation
 Use `/write-docs` to update documentation reflecting all changes.
 
 - [x] Update README with character info and new story length
@@ -116,6 +129,10 @@ Use `/write-docs` to update documentation reflecting all changes.
 | 2026-03-11 | Add story.part to vote span events | Enables per-part satisfaction breakdown on Datadog dashboard — tells the overall story of how votes on each section influenced traffic patterns |
 | 2026-03-11 | Fold shared stories + stateless into PRD #6 | Same concern (demo app improvements), avoids awkward sequencing of finishing per-user architecture then immediately replacing it |
 | 2026-03-11 | In-flight deduplication for on-demand generation | If shared story not pre-generated, concurrent audience requests for the same part share one LLM call via promise dedup. Result stored in shared store for all subsequent users |
+| 2026-03-11 | Round 2 has one style only (funny/Douglas Adams) | Round 2 differentiates by model quality (Haiku vs Opus), not style. Both models get the same Douglas Adams voice. Removed dry variant beats and style instructions for Round 2 |
+| 2026-03-11 | Round 2 admin labels show model names (Haiku/Opus) | Variant labels were showing "Round 2 Funny" for both — meaningless when both use the same style. Now shows "Round 2 Haiku" and "Round 2 Opus" |
+| 2026-03-11 | Playwright e2e tests before human verification | Automate story delivery, admin panel, voting, and variant coordination checks so human review focuses on subjective quality, not mechanical correctness |
+| 2026-03-11 | Reorder final milestones: Playwright → Human → Images → Docs | Catch mechanical issues with automated tests first, then human reviews quality, then bake verified code into images, then update docs last |
 
 ## Future Considerations
 

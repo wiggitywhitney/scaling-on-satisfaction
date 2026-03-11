@@ -5,6 +5,22 @@ import { TOTAL_PARTS } from '../story/prompts.js';
 import config from '../config.js';
 import { emitEvaluationEvent } from '../telemetry.js';
 
+const MODEL_DISPLAY_NAMES = {
+  'claude-haiku-4-5-20251001': 'Haiku',
+  'claude-sonnet-4-20250514': 'Sonnet',
+  'claude-opus-4-6': 'Opus',
+};
+
+function variantLabel(data, fallbackUrl) {
+  if (!data.round) return fallbackUrl || 'Unknown';
+  if (data.round === 2 && data.model) {
+    const modelName = MODEL_DISPLAY_NAMES[data.model] || data.model;
+    return `Round ${data.round} ${modelName}`;
+  }
+  const style = data.style ? data.style.charAt(0).toUpperCase() + data.style.slice(1) : 'Unknown';
+  return `Round ${data.round} ${style}`;
+}
+
 const sharedStory = new Map();
 const inFlightGenerations = new Map();
 let currentPart = 0;
@@ -308,6 +324,7 @@ export function createAdminRouter(generator) {
       currentPart,
       totalParts: TOTAL_PARTS,
       style: config.variantStyle,
+      model: config.variantModel,
       round: config.round,
       ready: isReady(),
       readyAt,
@@ -327,8 +344,7 @@ export function createAdminRouter(generator) {
           throw new Error(`status ${fetchRes.status}`);
         }
         const data = await fetchRes.json();
-        const label = explicitLabel
-          || (data.style ? `Round ${data.round} ${data.style.charAt(0).toUpperCase() + data.style.slice(1)}` : baseUrl);
+        const label = explicitLabel || variantLabel(data, baseUrl);
         variants.push({ url: baseUrl, label, ok: true, ...data });
       } catch (err) {
         const label = explicitLabel || baseUrl;

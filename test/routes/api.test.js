@@ -41,25 +41,25 @@ async function request(app, path, { method = 'GET', body = null } = {}) {
         let resBody = '';
         res.on('data', (chunk) => (resBody += chunk));
         res.on('end', () => {
-          server.close();
-          try {
-            resolve({
-              status: res.statusCode,
-              headers: res.headers,
-              body: resBody ? JSON.parse(resBody) : null,
-            });
-          } catch {
-            resolve({
-              status: res.statusCode,
-              headers: res.headers,
-              body: resBody,
-            });
-          }
+          server.close(() => {
+            try {
+              resolve({
+                status: res.statusCode,
+                headers: res.headers,
+                body: resBody ? JSON.parse(resBody) : null,
+              });
+            } catch {
+              resolve({
+                status: res.statusCode,
+                headers: res.headers,
+                body: resBody,
+              });
+            }
+          });
         });
       });
       req.on('error', (err) => {
-        server.close();
-        reject(err);
+        server.close(() => reject(err));
       });
       if (body !== null) {
         req.write(JSON.stringify(body));
@@ -1169,12 +1169,13 @@ describe('API routes', () => {
   });
 
   describe('GET /admin/status includes style and round', () => {
-    it('returns style and round in status response', async () => {
+    it('returns style, model, and round in status response', async () => {
       const app = buildApp(mockGenerator);
       const res = await request(app, '/api/admin/status');
 
       expect(res.status).toBe(200);
       expect(res.body.style).toBe(config.variantStyle);
+      expect(res.body.model).toBe(config.variantModel);
       expect(res.body.round).toBe(config.round);
     });
 
@@ -1270,6 +1271,19 @@ describe('API routes', () => {
       const res = await request(app, '/api/admin/variant-status');
 
       expect(res.body.variants[0].label).toBe('http://app-1b:8080');
+    });
+
+    it('uses model name for Round 2 variant labels', async () => {
+      config.variantUrls = ['http://app-2a:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, style: 'funny', model: 'claude-haiku-4-5-20251001', round: 2 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/variant-status');
+
+      expect(res.body.variants[0].label).toBe('Round 2 Haiku');
     });
 
     it('handles variant failure gracefully', async () => {

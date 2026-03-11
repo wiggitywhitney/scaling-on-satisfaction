@@ -123,6 +123,20 @@ const controller = createPollController({
     storyText.textContent = `Error loading story: ${err.message}`;
     storyText.classList.add('visible');
   },
+  onReset: () => {
+    story.classList.remove('active');
+    loading.classList.remove('active');
+    preparing.classList.remove('active');
+    waiting.classList.remove('active');
+    storyText.classList.remove('visible');
+    storyText.textContent = '';
+    progress.textContent = '';
+    welcome.classList.remove('hidden');
+    currentDisplayedPart = 0;
+    currentResponseId = null;
+    currentSpanContext = null;
+    hideVoteButtons();
+  },
 });
 
 // Eagerly pre-generate Part 1 so it's cached before admin advances

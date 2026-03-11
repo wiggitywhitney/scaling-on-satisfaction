@@ -7,10 +7,7 @@ const STYLE_INSTRUCTIONS = {
   dry: `Write as a deadpan narrator — completely serious, treating every absurd situation with total gravitas, but still telling a clear, readable story. Think aviation incident report or nature documentary narration: precise, humorless, matter-of-fact. Sprinkle in technical jargon and elevated vocabulary where it adds comedic contrast (e.g., "gravitational insufficiency," "autonomous hardware migration," "thermal management degradation") — but the story itself must remain followable. The audience should understand the plot while enjoying the absurdly formal language. No jokes, no puns, no wordplay, no exclamation marks. Document Nyx's panicked outbursts by quoting them directly, then continuing in calm, measured narration as if nothing unusual occurred.`,
 };
 
-const ROUND2_STYLE_INSTRUCTIONS = {
-  funny: `Write in the style of Douglas Adams. STRICT LIMIT on similes (comparisons using "like" or "as"): zero or one per part. Zero is preferred. Never open a paragraph with a simile. One good extended metaphor per part maximum; don't stack metaphors. Rae is a pure keyboard warrior who has never done anything remotely physical.`,
-  dry: `Write as a deadpan narrator — completely serious, treating every absurd situation with total gravitas, but still telling a clear, readable story. Think aviation incident report or nature documentary narration: precise, humorless, matter-of-fact. Sprinkle in technical jargon and elevated vocabulary where it adds comedic contrast (e.g., "subaqueous keyboard interaction," "ballistic trajectory," "respiratory reserve depletion") — but the story itself must remain followable. The audience should understand the plot while enjoying the absurdly formal language. No jokes, no puns, no wordplay, no exclamation marks. Document Rae's complete absence of kinetic performance experience as a relevant operational constraint.`,
-};
+const ROUND2_STYLE_INSTRUCTION = `Write in the style of Douglas Adams. STRICT LIMIT on similes (comparisons using "like" or "as"): zero or one per part. Zero is preferred. Never open a paragraph with a simile. One good extended metaphor per part maximum; don't stack metaphors. Rae is a pure keyboard warrior who has never done anything remotely physical.`;
 
 // Round 1: Platform Engineer on the Moon
 
@@ -112,37 +109,9 @@ const ROUND2_FUNNY_BEATS = {
   },
 };
 
-const ROUND2_DRY_BEATS = {
-  1: {
-    title: 'Subject Intake — Clown Native Computing Foundation Performance Venue',
-    instructions: `Software developer Rae Okonkwo presents at a performance venue operated by the Clown Native Computing Foundation (document the complete organizational designation). Catalogue the facility parameters: tensile fabric canopy structure, particulate substrate flooring, performers in chromatic attire engaged in various kinetic disciplines across multiple rings. Rae is assigned the escapologist role — confined within a transparent acrylic tank in the center ring, tasked with executing an application deployment before respiratory reserves are exhausted. Document environmental constraints: subaqueous keyboard interaction, limited oxygen availability, audience proximity creating additional operational pressure, and the subject's complete absence of prior kinetic performance experience. Rae inhales to maximum lung capacity and initiates the deployment sequence upon full immersion.`,
-    priorContext: null,
-  },
-  2: {
-    title: 'Performance Segment — Ballistic Performer with Protective Helm Apparatus',
-    instructions: `Rae remains submerged in the center ring confinement tank. In an adjacent ring, a performer enters a pneumatic launching apparatus wearing cranial protection designated as a "Helm-et" — a nomenclature with documented correspondence to the Helm package management system. Upon launch, the performer achieves ballistic trajectory across the venue interior. Rae, observing through the acrylic panel, makes concurrent deployment progress: Helm charts organize application manifests into deployable packages, service mesh configuration establishes traffic routing to designated endpoints. Rae's respiratory reserves show early-stage diminishment. Document mild physiological indicators: intercostal muscle tension, elevated cardiac rhythm, awareness of finite air supply. IMPORTANT: Maintain moderate urgency only — no references to final moments, near-death states, or imminent loss of consciousness. Reserve critical physiological deterioration for Section 4. The deployment remains incomplete at segment conclusion.`,
-    priorContext: `In Section 1, software developer Rae Okonkwo was confined within an acrylic water tank in the center ring at the Clown Native Computing Foundation performance venue. The assignment: complete an application deployment before exhaustion of respiratory reserves. Rae inhaled to maximum capacity and initiated the deployment sequence.`,
-  },
-  3: {
-    title: 'Aerial Performance Segment — Pendular Performer and Flux State Analysis',
-    instructions: `From within the center ring tank, Rae observes an aerial performer above the adjacent rings executing pendular maneuvers on suspended apparatus — described as being "in Flux," a state with documented correspondence to the Flux GitOps synchronization system. The GitOps process achieves configuration state reconciliation automatically. The application further requires compliance validation against organizational security policies — this function is performed by Kyverno, analogous to the safety apparatus installed below the aerial performer. Rae exhibits escalating but non-critical physiological indicators: lightheadedness, mild cognitive processing delay, and increasing discomfort. Rae remains functional and continues deployment operations through the acrylic confinement. IMPORTANT: Rae is impaired but not in critical condition. Reserve severe oxygen depletion, vision collapse, and near-death indicators for Section 4. Deployment progress continues incrementally. Completion is not achieved within this segment.`,
-    priorContext: `In Section 1, Rae Okonkwo was confined in a water tank in the center ring at the Clown Native Computing Foundation venue with instructions to deploy an application before respiratory failure. In Section 2, a ballistic performer wearing a "Helm-et" was launched in an adjacent ring while Rae progressed via Helm chart packaging and service mesh routing. Respiratory reserves are diminishing.`,
-  },
-  4: {
-    title: 'Vehicular Egress Phenomenon — Single API, Multiple Interface Paradigm',
-    instructions: `Rae's visual acuity deteriorates through the acrylic panel. In the adjacent ring, a vehicle of improbable dimensions enters the performance area. An excessive quantity of performers egress sequentially, each presenting a distinct interface to an identical Kubernetes API: command-line interface, graphical web dashboard, programmatic API client, GitOps declarative interface. This demonstrates the architectural principle wherein a single API supports multiple access paradigms from a single substrate. THIS section documents Rae's near-death physiological deterioration. Rae's condition reaches critical parameters: severe oxygen depletion, peripheral vision collapse, involuntary panic response activation, loss of fine motor control, approach to terminal consciousness threshold. The deployment approaches completion with minimal remaining steps. This segment concludes with Rae at the threshold of consciousness — the climax of physiological crisis.`,
-    priorContext: `In Section 1, Rae Okonkwo was confined in a water tank in the center ring at the Clown Native Computing Foundation venue. In Section 2, Helm chart packaging and service mesh routing progressed the deployment during the ballistic performer segment in an adjacent ring. In Section 3, GitOps synchronization via Flux and default security compliance via Kyverno advanced the deployment further. Rae exhibits progressive cerebral hypoxia.`,
-  },
-  5: {
-    title: 'Deployment Completion and Post-Performance Assessment',
-    instructions: `The application deployment achieves successful completion status. The confinement tank aperture mechanism engages. Rae performs emergency respiration. Audience response registers at elevated decibel levels. The Clown Native Computing Foundation (document the complete organizational designation) initiates celebratory protocols. Describe the post-performance spectacle using formal observational language — creative freedom on the specific celebratory manifestations. Conclude with the analytical assessment that the platform engineering infrastructure served as the primary enabling factor in Rae's successful deployment under extreme physiological constraints. The platform transformed an individual developer into a high-performing operator.`,
-    priorContext: `In Section 1, Rae Okonkwo was confined in a water tank in the center ring at the Clown Native Computing Foundation venue tasked with deploying an application before respiratory failure. In Section 2, Helm charts and service mesh progressed the deployment during the adjacent ring's ballistic performer segment. In Section 3, Flux GitOps and Kyverno security compliance advanced it further. In Section 4, the single Kubernetes API with multiple interfaces brought the deployment to near-completion as Rae approached loss of consciousness.`,
-  },
-};
-
 const BEATS = {
   1: { funny: ROUND1_FUNNY_BEATS, dry: ROUND1_DRY_BEATS },
-  2: { funny: ROUND2_FUNNY_BEATS, dry: ROUND2_DRY_BEATS },
+  2: { funny: ROUND2_FUNNY_BEATS },
 };
 
 export function buildPrompt(partNumber, style, round = 1) {
@@ -154,14 +123,16 @@ export function buildPrompt(partNumber, style, round = 1) {
   if (!roundBeats) {
     throw new Error(`Invalid round: ${round}. Must be 1 or 2.`);
   }
-  const beats = roundBeats[style];
+  // Round 2 has only one style (funny) — model quality is the differentiator
+  const effectiveStyle = round === 2 ? 'funny' : style;
+  const beats = roundBeats[effectiveStyle];
   if (!beats) {
     throw new Error(`Invalid style: "${style}" for round ${round}. Valid styles: ${Object.keys(roundBeats).join(', ')}.`);
   }
   const beat = beats[partNumber];
 
   const styleInstruction = round === 2
-    ? ROUND2_STYLE_INSTRUCTIONS[style]
+    ? ROUND2_STYLE_INSTRUCTION
     : STYLE_INSTRUCTIONS[style];
 
   const shared = round === 2
@@ -189,13 +160,7 @@ export function buildPrompt(partNumber, style, round = 1) {
     ? {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about Rae Okonkwo, a backend developer performing the Houdini act at the Clown Native Computing Foundation circus.`,
-        `STRICT LIMIT: 100 words maximum. Keep it tight — every sentence should advance the story or land a joke.`,
-        ...shared,
-        styleInstruction,
-      ],
-      dry: [
-        `You are a deadpan narrator telling a serialized 5-part story about Rae Okonkwo, a software developer performing an escape act at a circus operated by the Clown Native Computing Foundation. Your tone is completely serious, precise, and humorless — but you are telling a story, not writing an academic paper. The audience should follow the plot easily.`,
-        `STRICT LIMIT: 100 words maximum. Every sentence should advance the narrative or establish the situation clearly.`,
+        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. Do not display a word count. Every sentence must advance the story or land a joke — cut anything that doesn't.`,
         ...shared,
         styleInstruction,
       ],
@@ -203,13 +168,13 @@ export function buildPrompt(partNumber, style, round = 1) {
     : {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about Nyx Vasquez, a platform engineer on the moon.`,
-        `STRICT LIMIT: 100 words maximum. Keep it tight — every sentence should advance the story or land a joke.`,
+        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. Do not display a word count. Every sentence must advance the story or land a joke — cut anything that doesn't.`,
         ...shared,
         styleInstruction,
       ],
       dry: [
         `You are a deadpan narrator telling a serialized 5-part story about Nyx Vasquez, a platform engineer deployed to the lunar surface. Your tone is completely serious, precise, and humorless — but you are telling a story, not writing an academic paper. The audience should follow the plot easily.`,
-        `STRICT LIMIT: 100 words maximum. Every sentence should advance the narrative or establish the situation clearly.`,
+        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. Do not display a word count. Every sentence must advance the narrative or establish the situation clearly — cut anything that doesn't.`,
         ...shared,
         styleInstruction,
       ],

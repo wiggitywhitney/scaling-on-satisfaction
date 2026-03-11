@@ -38,3 +38,9 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Vote double-prevention moved to client-side only (server no longer tracks votes)
 - Admin panel shows pre-generated parts count instead of active sessions
 - API route tests rewritten for stateless contract (88 tests, 192 total)
+- E2E tests for admin reset (audience returns to welcome), late joiner (sees current part), and vote telemetry (correct request/response payload)
+- E2E drift test uses pre-generated content to measure real sync behavior (0ms drift)
+- Round 1 and Round 2 walkthrough e2e tests
+- Pre-generation e2e test
+- Strengthened 100-word prompt limit with rejection language and word count leak prevention
+- Existing e2e tests updated for 2-instance shared-story stateless architecture

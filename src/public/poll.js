@@ -10,7 +10,7 @@
  * controller fetches the story (overlapping generation with the sync
  * window) but holds the content until ready becomes true.
  */
-export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart, onLoading, onError, onWaitingForReady }) {
+export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart, onLoading, onError, onWaitingForReady, onReset }) {
   let displayedPart = 0;
   let fetchingPart = 0;
   let heldData = null;
@@ -21,6 +21,14 @@ export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart,
     displayedPart = heldData.part;
     onPart(heldData);
     heldData = null;
+  }
+
+  function reset() {
+    displayedPart = 0;
+    fetchingPart = 0;
+    heldData = null;
+    lastReady = true;
+    if (onReset) onReset();
   }
 
   async function fetchPart(part) {
@@ -47,6 +55,11 @@ export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart,
       const data = await fetchStoryStatus();
       const ready = data.ready !== false;
       lastReady = ready;
+
+      // Server was reset — reset client state to match
+      if (data.currentPart < displayedPart) {
+        reset();
+      }
 
       if (data.currentPart > displayedPart) {
         fetchPart(data.currentPart);

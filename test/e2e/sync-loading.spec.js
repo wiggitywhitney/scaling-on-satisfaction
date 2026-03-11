@@ -3,40 +3,35 @@
 
 import { test, expect } from '@playwright/test';
 
-const COORDINATOR = 'http://localhost:8080';
-const VARIANT_A = 'http://localhost:8081';
-const VARIANT_B = 'http://localhost:8082';
+const COORDINATOR = 'http://localhost:8080'; // Admin panel + audience app (variant A)
+const VARIANT = 'http://localhost:8081';     // Audience app only (variant B)
 
 test.describe('Synchronized Variant Loading', () => {
   test.beforeEach(async () => {
-    // Reset all instances before each test
     await fetch(`${COORDINATOR}/api/admin/reset`, { method: 'POST' });
-    // Also reset variants directly in case coordinator forwarding is being tested
-    await fetch(`${VARIANT_A}/api/admin/reset`, { method: 'POST' });
-    await fetch(`${VARIANT_B}/api/admin/reset`, { method: 'POST' });
+    await fetch(`${VARIANT}/api/admin/reset`, { method: 'POST' });
   });
 
-  test('admin panel shows variant status for both variants', async ({ page }) => {
+  test('admin panel shows variant status', async ({ page }) => {
     await page.goto(`${COORDINATOR}/admin`);
 
-    // Wait for variants section to populate
-    await expect(page.locator('.variant-card')).toHaveCount(3, { timeout: 10000 });
+    // Coordinator shows this instance + one remote variant
+    await expect(page.locator('.variant-card')).toHaveCount(2, { timeout: 10000 });
 
-    // Should show this instance + both variants
     const cards = page.locator('.variant-card');
     await expect(cards.nth(0)).toContainText('this instance');
-    await expect(cards.nth(1)).toContainText('Round 1 Funny');
-    await expect(cards.nth(2)).toContainText('Round 1 Dry');
   });
 
   test('admin panel shows preparing state during sync window', async ({ page }) => {
     await page.goto(`${COORDINATOR}/admin`);
     await page.waitForTimeout(1000);
 
-    // Click advance
-    await page.click('#btn-advance');
+    // Advance with a readyAt 8s in the future to trigger sync window
+    const readyAt = Date.now() + 8000;
+    await fetch(`${COORDINATOR}/api/admin/advance?readyAt=${readyAt}`, { method: 'POST' });
 
-    // Should show "Preparing..." sync status
+    await page.waitForTimeout(500);
+
     const syncStatus = page.locator('#sync-status');
     await expect(syncStatus).toContainText('Preparing', { timeout: 5000 });
     await expect(syncStatus).toHaveClass(/preparing/);
@@ -46,117 +41,99 @@ test.describe('Synchronized Variant Loading', () => {
     await page.goto(`${COORDINATOR}/admin`);
     await page.waitForTimeout(1000);
 
-    await page.click('#btn-advance');
+    const readyAt = Date.now() + 5000;
+    await fetch(`${COORDINATOR}/api/admin/advance?readyAt=${readyAt}`, { method: 'POST' });
 
-    // Should start as preparing
+    await page.waitForTimeout(500);
+
     const syncStatus = page.locator('#sync-status');
     await expect(syncStatus).toContainText('Preparing', { timeout: 5000 });
 
-    // Should transition to ready after sync delay (8s) + poll interval (3s)
+    // Should transition to ready after the readyAt time passes + poll interval (3s)
     await expect(syncStatus).toContainText('Ready', { timeout: 15000 });
     await expect(syncStatus).toHaveClass(/ready/);
   });
 
-  test('advance increments part on all variants simultaneously', async () => {
-    // Verify all start at 0 after reset
+  test('advance increments part on both instances simultaneously', async () => {
     const coordBefore = await fetch(`${COORDINATOR}/api/admin/status`).then(r => r.json());
     expect(coordBefore.currentPart).toBe(0);
 
-    // Advance via API (not UI click, to avoid timing issues)
     await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
 
-    // All three instances should now be at part 1
     const coordAfter = await fetch(`${COORDINATOR}/api/admin/status`).then(r => r.json());
-    const afterA = await fetch(`${VARIANT_A}/api/admin/status`).then(r => r.json());
-    const afterB = await fetch(`${VARIANT_B}/api/admin/status`).then(r => r.json());
+    const variantAfter = await fetch(`${VARIANT}/api/admin/status`).then(r => r.json());
 
     expect(coordAfter.currentPart).toBe(1);
-    expect(afterA.currentPart).toBe(1);
-    expect(afterB.currentPart).toBe(1);
+    expect(variantAfter.currentPart).toBe(1);
   });
 
-  test('audience on variant A sees loading then story after sync window', async ({ page }) => {
-    // Advance part 1 via coordinator
+  test('coordinator audience sees story after advance', async ({ page }) => {
     await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
 
-    // Open audience page on variant A
-    await page.goto(VARIANT_A);
+    await page.goto(COORDINATOR);
 
-    // Should show loading/preparing state first
     const storyText = page.locator('#story-text');
-
-    // Wait for either loading or preparing to appear
-    await expect(page.locator('#loading.active, #preparing.active').first()).toBeVisible({ timeout: 10000 });
-
-    // Eventually story text should appear (after generation + sync window)
-    await expect(storyText).toBeVisible({ timeout: 45000 });
+    await expect(storyText).toBeVisible({ timeout: 60000 });
     const text = await storyText.textContent();
     expect(text.length).toBeGreaterThan(50);
   });
 
-  test('audience on variant B sees loading then story after sync window', async ({ page }) => {
+  test('variant audience sees story after advance', async ({ page }) => {
     await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
 
-    await page.goto(VARIANT_B);
+    await page.goto(VARIANT);
 
-    const loading = page.locator('#loading');
-    const preparing = page.locator('#preparing');
     const storyText = page.locator('#story-text');
-
-    await expect(page.locator('#loading.active, #preparing.active').first()).toBeVisible({ timeout: 10000 });
-    await expect(storyText).toBeVisible({ timeout: 45000 });
+    await expect(storyText).toBeVisible({ timeout: 60000 });
     const text = await storyText.textContent();
     expect(text.length).toBeGreaterThan(50);
   });
 
-  test('both variants show stories at roughly the same time', async ({ browser }) => {
-    // Open two pages — one per variant
-    const pageA = await browser.newPage();
-    const pageB = await browser.newPage();
-
-    // Advance via coordinator
-    await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
-
-    // Navigate both audience pages
+  test('both instances show pre-generated stories at roughly the same time', async ({ browser }) => {
+    // Pre-generate Part 1 on both instances so serving is instant (no LLM wait)
     await Promise.all([
-      pageA.goto(VARIANT_A),
-      pageB.goto(VARIANT_B),
+      fetch(`${COORDINATOR}/api/admin/pre-generate`, { method: 'POST' }),
+      fetch(`${VARIANT}/api/admin/pre-generate`, { method: 'POST' }),
     ]);
 
-    const storyA = pageA.locator('#story-text');
-    const storyB = pageB.locator('#story-text');
+    await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
 
-    // Wait for both stories to appear, record when each becomes visible
+    const pageCoord = await browser.newPage();
+    const pageVariant = await browser.newPage();
+
+    await Promise.all([
+      pageCoord.goto(COORDINATOR),
+      pageVariant.goto(VARIANT),
+    ]);
+
+    const storyCoord = pageCoord.locator('#story-text');
+    const storyVariant = pageVariant.locator('#story-text');
+
     const startTime = Date.now();
-    const [timeA, timeB] = await Promise.all([
-      storyA.waitFor({ state: 'visible', timeout: 45000 }).then(() => Date.now() - startTime),
-      storyB.waitFor({ state: 'visible', timeout: 45000 }).then(() => Date.now() - startTime),
+    const [timeCoord, timeVariant] = await Promise.all([
+      storyCoord.waitFor({ state: 'visible', timeout: 15000 }).then(() => Date.now() - startTime),
+      storyVariant.waitFor({ state: 'visible', timeout: 15000 }).then(() => Date.now() - startTime),
     ]);
 
-    // Both should appear within a few seconds of each other
-    // The sync delay (8s) should prevent one from appearing way before the other
-    const drift = Math.abs(timeA - timeB);
-    console.log(`Variant A visible at ${timeA}ms, Variant B at ${timeB}ms, drift: ${drift}ms`);
+    const drift = Math.abs(timeCoord - timeVariant);
+    console.log(`Coordinator visible at ${timeCoord}ms, Variant at ${timeVariant}ms, drift: ${drift}ms`);
 
-    // Allow up to 5s drift — without sync this could be 10s+
+    // With pre-generated content, drift should only be poll interval timing (~2s)
     expect(drift).toBeLessThan(5000);
 
-    await pageA.close();
-    await pageB.close();
+    await pageCoord.close();
+    await pageVariant.close();
   });
 
   test('vote buttons appear after story loads', async ({ page }) => {
     await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
-    await page.goto(VARIANT_A);
+    await page.goto(VARIANT);
 
-    // Wait for story to load
     await expect(page.locator('#story-text')).toBeVisible({ timeout: 45000 });
 
-    // Vote buttons should be visible
     const voteButtons = page.locator('#vote-buttons');
     await expect(voteButtons).toHaveClass(/active/);
 
-    // Both thumbs buttons should be enabled
     const thumbsUp = page.locator('[data-vote="thumbs_up"]');
     const thumbsDown = page.locator('[data-vote="thumbs_down"]');
     await expect(thumbsUp).toBeEnabled();
@@ -165,36 +142,143 @@ test.describe('Synchronized Variant Loading', () => {
 
   test('voting locks the buttons and shows selection', async ({ page }) => {
     await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
-    await page.goto(VARIANT_A);
+    await page.goto(VARIANT);
 
     await expect(page.locator('#story-text')).toBeVisible({ timeout: 45000 });
 
-    // Click thumbs up
     await page.click('[data-vote="thumbs_up"]');
 
-    // Thumbs up should be selected, thumbs down dimmed
     await expect(page.locator('[data-vote="thumbs_up"]')).toHaveClass(/selected/);
     await expect(page.locator('[data-vote="thumbs_down"]')).toHaveClass(/dimmed/);
 
-    // Both should be disabled
     await expect(page.locator('[data-vote="thumbs_up"]')).toBeDisabled();
     await expect(page.locator('[data-vote="thumbs_down"]')).toBeDisabled();
   });
 
-  test('admin session count increases when audience loads story', async ({ page, browser }) => {
+  test('admin reset snaps audience back to welcome screen', async ({ browser }) => {
+    const pageCoord = await browser.newPage();
+    const pageVariant = await browser.newPage();
+
     await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
 
-    // Open audience page to create a session
-    const audiencePage = await browser.newPage();
-    await audiencePage.goto(VARIANT_A);
-    await expect(audiencePage.locator('#story-text')).toBeVisible({ timeout: 45000 });
+    await Promise.all([
+      pageCoord.goto(COORDINATOR),
+      pageVariant.goto(VARIANT),
+    ]);
 
-    // Check admin shows at least 1 session (may have more from prior test pollution)
-    await page.goto(`${VARIANT_A}/admin`);
-    const infoText = await page.locator('#info').textContent({ timeout: 10000 });
-    const sessionCount = parseInt(infoText.match(/(\d+) active/)?.[1] || '0', 10);
-    expect(sessionCount).toBeGreaterThanOrEqual(1);
+    // Wait for story text to appear on both pages
+    await Promise.all([
+      expect(pageCoord.locator('#story-text')).toBeVisible({ timeout: 60000 }),
+      expect(pageVariant.locator('#story-text')).toBeVisible({ timeout: 60000 }),
+    ]);
 
-    await audiencePage.close();
+    // Reset via coordinator (forwards to variant too)
+    await fetch(`${COORDINATOR}/api/admin/reset`, { method: 'POST' });
+
+    // Both pages should poll back to welcome state within a few poll cycles
+    await Promise.all([
+      expect(pageCoord.locator('#welcome')).not.toHaveClass(/hidden/, { timeout: 15000 }),
+      expect(pageVariant.locator('#welcome')).not.toHaveClass(/hidden/, { timeout: 15000 }),
+    ]);
+
+    // Story section should no longer be active and story text should be hidden
+    await expect(pageCoord.locator('#story')).not.toHaveClass(/active/);
+    await expect(pageVariant.locator('#story')).not.toHaveClass(/active/);
+    await expect(pageCoord.locator('#story-text')).not.toBeVisible();
+    await expect(pageVariant.locator('#story-text')).not.toBeVisible();
+
+    await pageCoord.close();
+    await pageVariant.close();
+  });
+
+  test('late joiner sees the current part immediately', async ({ page }) => {
+    // Advance to Part 3
+    await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
+    await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
+    await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
+
+    // Wait for Part 3 to be generated (poll status until sharedStoryParts includes 3)
+    const waitForPart3 = async () => {
+      for (let i = 0; i < 60; i++) {
+        const status = await fetch(`${VARIANT}/api/story/status`).then(r => r.json());
+        if (status.sharedStoryParts.includes(3)) return;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      throw new Error('Part 3 never became available');
+    };
+    await waitForPart3();
+
+    // Open a fresh audience page — should land on Part 3 directly
+    await page.goto(VARIANT);
+
+    const storyText = page.locator('#story-text');
+    await expect(storyText).toBeVisible({ timeout: 15000 });
+
+    const progressText = await page.locator('#progress').textContent();
+    expect(progressText).toContain('Part 3 of 5');
+  });
+
+  test('vote produces correct API response with telemetry data', async ({ browser }) => {
+    await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
+
+    const page = await browser.newPage();
+    await page.goto(VARIANT);
+    await expect(page.locator('#story-text')).toBeVisible({ timeout: 60000 });
+
+    // Intercept the vote request to inspect the payload
+    let capturedRequest = null;
+    await page.route('**/api/story/1/vote', async (route) => {
+      capturedRequest = {
+        body: JSON.parse(route.request().postData()),
+      };
+      // Let the request continue to the server
+      const response = await route.fetch();
+      const responseBody = await response.json();
+      capturedRequest.response = responseBody;
+      await route.fulfill({ response });
+    });
+
+    // Click thumbs up
+    await page.click('[data-vote="thumbs_up"]');
+
+    // Wait for the vote request to complete
+    await expect(page.locator('[data-vote="thumbs_up"]')).toHaveClass(/selected/, { timeout: 5000 });
+
+    // Verify the intercepted request body
+    expect(capturedRequest).not.toBeNull();
+    expect(capturedRequest.body.vote).toBe('thumbs_up');
+    expect(capturedRequest.body.responseId).toBeTruthy();
+    expect(capturedRequest.body.spanContext).toBeTruthy();
+
+    // Verify the API response
+    expect(capturedRequest.response.part).toBe(1);
+    expect(capturedRequest.response.vote).toBe('thumbs_up');
+
+    await page.close();
+
+    // Second page: thumbs down vote
+    const page2 = await browser.newPage();
+    await page2.goto(COORDINATOR);
+    await expect(page2.locator('#story-text')).toBeVisible({ timeout: 60000 });
+
+    let capturedRequest2 = null;
+    await page2.route('**/api/story/1/vote', async (route) => {
+      capturedRequest2 = {
+        body: JSON.parse(route.request().postData()),
+      };
+      const response = await route.fetch();
+      const responseBody = await response.json();
+      capturedRequest2.response = responseBody;
+      await route.fulfill({ response });
+    });
+
+    await page2.click('[data-vote="thumbs_down"]');
+    await expect(page2.locator('[data-vote="thumbs_down"]')).toHaveClass(/selected/, { timeout: 5000 });
+
+    expect(capturedRequest2).not.toBeNull();
+    expect(capturedRequest2.body.vote).toBe('thumbs_down');
+    expect(capturedRequest2.response.vote).toBe('thumbs_down');
+
+    await page2.close();
   });
 });

@@ -168,7 +168,17 @@
       }
     }
 
-    function formatLabel(style, round) {
+    const MODEL_DISPLAY_NAMES = {
+      'claude-haiku-4-5-20251001': 'Haiku',
+      'claude-sonnet-4-20250514': 'Sonnet',
+      'claude-opus-4-6': 'Opus',
+    };
+
+    function formatLabel(style, round, model) {
+      if (round === 2 && model) {
+        const modelName = MODEL_DISPLAY_NAMES[model] || model;
+        return `Round ${round} ${modelName}`;
+      }
       const s = style ? style.charAt(0).toUpperCase() + style.slice(1) : 'Unknown';
       return `Round ${round} ${s}`;
     }
@@ -186,7 +196,7 @@
         const allVariants = [];
         if (mainStatus) {
           allVariants.push({
-            label: formatLabel(mainStatus.style, mainStatus.round) + ' (this instance)',
+            label: formatLabel(mainStatus.style, mainStatus.round, mainStatus.model) + ' (this instance)',
             ok: true,
             currentPart: mainStatus.currentPart,
             totalParts: mainStatus.totalParts,

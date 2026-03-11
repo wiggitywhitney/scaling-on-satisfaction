@@ -122,6 +122,78 @@ describe('poll controller', () => {
     expect(fetchStoryPart).not.toHaveBeenCalled();
   });
 
+  describe('server reset detection', () => {
+    let onReset;
+
+    beforeEach(() => {
+      onReset = vi.fn();
+      controller = createPollController({
+        fetchStoryStatus,
+        fetchStoryPart,
+        onPart,
+        onLoading,
+        onError,
+        onReset,
+      });
+    });
+
+    it('resets client state when server currentPart drops below displayedPart', async () => {
+      // First, advance to part 2
+      fetchStoryStatus.mockResolvedValue({ currentPart: 2 });
+      fetchStoryPart.mockResolvedValue({ part: 2, text: 'Part 2', totalParts: 5, vote: null });
+      await controller.poll();
+      await vi.waitFor(() => expect(onPart).toHaveBeenCalled());
+      expect(controller.getState().displayedPart).toBe(2);
+
+      // Server resets to 0
+      fetchStoryStatus.mockResolvedValue({ currentPart: 0 });
+      await controller.poll();
+
+      expect(onReset).toHaveBeenCalled();
+      expect(controller.getState().displayedPart).toBe(0);
+      expect(controller.getState().fetchingPart).toBe(0);
+    });
+
+    it('resets when server goes back to part 1 from part 3', async () => {
+      // Advance to part 3
+      fetchStoryStatus.mockResolvedValue({ currentPart: 3 });
+      fetchStoryPart.mockResolvedValue({ part: 3, text: 'Part 3', totalParts: 5, vote: null });
+      await controller.poll();
+      await vi.waitFor(() => expect(onPart).toHaveBeenCalled());
+
+      // Server resets to part 1
+      fetchStoryStatus.mockResolvedValue({ currentPart: 1 });
+      fetchStoryPart.mockResolvedValue({ part: 1, text: 'New Part 1', totalParts: 5, vote: null });
+      await controller.poll();
+
+      expect(onReset).toHaveBeenCalled();
+      // After reset, displayedPart is 0, so currentPart (1) > displayedPart (0) triggers fetch
+      await vi.waitFor(() => expect(onPart).toHaveBeenCalledTimes(2));
+      expect(onPart).toHaveBeenLastCalledWith({ part: 1, text: 'New Part 1', totalParts: 5, vote: null });
+    });
+
+    it('works without onReset callback', async () => {
+      controller = createPollController({
+        fetchStoryStatus,
+        fetchStoryPart,
+        onPart,
+        onLoading,
+        onError,
+      });
+
+      fetchStoryStatus.mockResolvedValue({ currentPart: 2 });
+      fetchStoryPart.mockResolvedValue({ part: 2, text: 'Part 2', totalParts: 5, vote: null });
+      await controller.poll();
+      await vi.waitFor(() => expect(onPart).toHaveBeenCalled());
+
+      // Server resets — should not throw even without onReset
+      fetchStoryStatus.mockResolvedValue({ currentPart: 0 });
+      await controller.poll();
+
+      expect(controller.getState().displayedPart).toBe(0);
+    });
+  });
+
   describe('synchronized loading', () => {
     let onWaitingForReady;
 
