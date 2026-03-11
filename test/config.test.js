@@ -148,4 +148,16 @@ describe('config', () => {
     const { default: config } = await import('../src/config.js?' + Date.now());
     expect(config.pregenRetryDelayMs).toBe(10000);
   });
+
+  it('throws on invalid PREGEN_DELAY_MS value', async () => {
+    process.env.PREGEN_DELAY_MS = '2s';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    await expect(import('../src/config.js?' + Date.now())).rejects.toThrow('Invalid PREGEN_DELAY_MS');
+  });
+
+  it('throws on negative PREGEN_RETRY_DELAY_MS value', async () => {
+    process.env.PREGEN_RETRY_DELAY_MS = '-100';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    await expect(import('../src/config.js?' + Date.now())).rejects.toThrow('Invalid PREGEN_RETRY_DELAY_MS');
+  });
 });

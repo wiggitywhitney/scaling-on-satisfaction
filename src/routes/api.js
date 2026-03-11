@@ -25,6 +25,7 @@ const sharedStory = new Map();
 const inFlightGenerations = new Map();
 let currentPart = 0;
 let readyAt = 0;
+let generationEpoch = 0;
 
 export function getCurrentPart() {
   return currentPart;
@@ -39,6 +40,7 @@ export function resetState() {
   inFlightGenerations.clear();
   currentPart = 0;
   readyAt = 0;
+  generationEpoch++;
 }
 
 function isReady() {
@@ -54,14 +56,16 @@ export function createApiRouter(generator) {
     // Eagerly generate part 1 in the background after stagger delay (skip if shared story exists)
     if (!sharedStory.has(1) && !inFlightGenerations.has(1)) {
       const delay = config.pregenDelayMs;
+      const epoch = generationEpoch;
       const generate = () => {
         const genPromise = generator.generatePart(1, config.variantStyle, config.variantModel, config.round);
         inFlightGenerations.set(1, genPromise);
         genPromise
           .then(result => {
-            if (!sharedStory.has(1)) {
+            if (epoch === generationEpoch && !sharedStory.has(1)) {
               sharedStory.set(1, result);
             }
+            inFlightGenerations.delete(1);
           })
           .catch(err => {
             console.error(`Pre-generation failed for part 1 (warmup): ${err.message}`);
@@ -69,7 +73,7 @@ export function createApiRouter(generator) {
             setTimeout(() => {
               const retryPromise = generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
                 .then(result => {
-                  if (!sharedStory.has(1)) {
+                  if (epoch === generationEpoch && !sharedStory.has(1)) {
                     sharedStory.set(1, result);
                   }
                 })
@@ -79,9 +83,6 @@ export function createApiRouter(generator) {
                 .finally(() => inFlightGenerations.delete(1));
               inFlightGenerations.set(1, retryPromise);
             }, config.pregenRetryDelayMs);
-          })
-          .catch(() => {
-            // Swallow — retry handler above manages cleanup
           });
       };
 
@@ -166,14 +167,16 @@ export function createApiRouter(generator) {
       // Eagerly pre-generate the next part in the background after stagger delay
       const nextPart = partNumber + 1;
       if (nextPart <= TOTAL_PARTS && !sharedStory.has(nextPart) && !inFlightGenerations.has(nextPart)) {
+        const epoch = generationEpoch;
         const generate = () => {
           const genPromise = generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round);
           inFlightGenerations.set(nextPart, genPromise);
           genPromise
             .then(nextResult => {
-              if (!sharedStory.has(nextPart)) {
+              if (epoch === generationEpoch && !sharedStory.has(nextPart)) {
                 sharedStory.set(nextPart, nextResult);
               }
+              inFlightGenerations.delete(nextPart);
             })
             .catch(err => {
               console.error(`Pre-generation failed for part ${nextPart}: ${err.message}`);
@@ -181,7 +184,7 @@ export function createApiRouter(generator) {
               setTimeout(() => {
                 const retryPromise = generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
                   .then(nextResult => {
-                    if (!sharedStory.has(nextPart)) {
+                    if (epoch === generationEpoch && !sharedStory.has(nextPart)) {
                       sharedStory.set(nextPart, nextResult);
                     }
                   })
@@ -191,9 +194,6 @@ export function createApiRouter(generator) {
                   .finally(() => inFlightGenerations.delete(nextPart));
                 inFlightGenerations.set(nextPart, retryPromise);
               }, config.pregenRetryDelayMs);
-            })
-            .catch(() => {
-              // Swallow — retry handler above manages cleanup
             });
         };
 

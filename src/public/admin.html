@@ -252,8 +252,8 @@
           info.style.color = '#e74c3c';
           return;
         }
-        refresh();
-        refreshVariants();
+        await refresh();
+        await refreshVariants();
       } catch (err) {
         info.textContent = `Pre-generation failed: ${err.message}`;
         info.style.color = '#e74c3c';

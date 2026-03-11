@@ -29,7 +29,7 @@ const ROUND1_FUNNY_BEATS = {
   },
   4: {
     title: 'Bittersweet Victory',
-    instructions: `MANDATORY STRUCTURE — This part has two halves, and may run up to ~130 words to give both halves room.
+    instructions: `MANDATORY STRUCTURE — This part has two halves, but must still fit within the ~100-word limit.
 
 FIRST SENTENCE (non-negotiable): Must briefly restate the two problems and signal that Nyx is about to fix them. The audience has been voting and waiting between parts — they need a reminder. Something like "Nyx decided it was time to tackle the servers floating away and the hours-long CI/CD round trips to Earth." Do NOT jump straight into solution details without this orientation beat.
 
@@ -63,7 +63,7 @@ const ROUND1_DRY_BEATS = {
   },
   4: {
     title: 'Resolution and Utilization Assessment',
-    instructions: `MANDATORY STRUCTURE — This part has two halves, and may run up to ~130 words to give both halves room.
+    instructions: `MANDATORY STRUCTURE — This part has two halves, but must still fit within the ~100-word limit.
 
 FIRST SENTENCE (non-negotiable): Must briefly restate the two problems and signal that Nyx is about to resolve them. The audience has been voting and waiting between parts — they need a reminder. Something like "Nyx initiated remediation procedures for both the hardware displacement crisis and the cislunar CI/CD latency." Do NOT jump straight into fix details without this orientation beat.
 
