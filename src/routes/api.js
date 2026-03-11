@@ -58,6 +58,7 @@ export function createApiRouter(generator) {
       const delay = config.pregenDelayMs;
       const epoch = generationEpoch;
       const generate = () => {
+        if (sharedStory.has(1) || inFlightGenerations.has(1) || epoch !== generationEpoch) return;
         const genPromise = generator.generatePart(1, config.variantStyle, config.variantModel, config.round);
         inFlightGenerations.set(1, genPromise);
         genPromise
@@ -169,6 +170,7 @@ export function createApiRouter(generator) {
       if (nextPart <= TOTAL_PARTS && !sharedStory.has(nextPart) && !inFlightGenerations.has(nextPart)) {
         const epoch = generationEpoch;
         const generate = () => {
+          if (sharedStory.has(nextPart) || inFlightGenerations.has(nextPart) || epoch !== generationEpoch) return;
           const genPromise = generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round);
           inFlightGenerations.set(nextPart, genPromise);
           genPromise
