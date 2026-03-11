@@ -5,4 +5,5 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 VALS_BIN="$(command -v vals)"
 BASH_BIN="$(command -v bash)"
-"$VALS_BIN" exec -f .vals.yaml -- "$BASH_BIN" -c 'npx vitest run test/acceptance-gate.test.js'
+SAVED_PATH="$PATH"
+"$VALS_BIN" exec -f .vals.yaml -- "$BASH_BIN" -c "export PATH=\"${SAVED_PATH}\"; npx vitest run test/acceptance-gate.test.js"
