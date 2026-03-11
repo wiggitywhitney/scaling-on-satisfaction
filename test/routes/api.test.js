@@ -8,7 +8,7 @@ vi.mock('../../src/telemetry.js', () => ({
   emitEvaluationEvent: vi.fn(),
 }));
 
-import { createApiRouter, createAdminRouter, resetState } from '../../src/routes/api.js';
+import { createApiRouter, createAdminRouter, resetState, getSharedStory } from '../../src/routes/api.js';
 import { emitEvaluationEvent } from '../../src/telemetry.js';
 import config from '../../src/config.js';
 
@@ -17,7 +17,7 @@ function buildApp(mockGenerator) {
   app.use(cookieParser());
   app.use(express.json());
   app.use('/api', createApiRouter(mockGenerator));
-  app.use('/api/admin', createAdminRouter());
+  app.use('/api/admin', createAdminRouter(mockGenerator));
   return app;
 }
 
@@ -168,6 +168,127 @@ describe('API routes', () => {
 
       expect(res.status).toBe(500);
       expect(res.body.error).toBeDefined();
+    });
+  });
+
+  describe('GET /api/story/:part with shared story', () => {
+    it('serves shared pre-generated story instead of generating per-session', async () => {
+      mockGenerator.generatePart = vi.fn().mockImplementation((part) =>
+        Promise.resolve({
+          text: `Shared part ${part}`, responseId: `msg_shared_${part}`,
+          spanContext: { traceId: `t_${part}`, spanId: `s_${part}`, traceFlags: 1 },
+        })
+      );
+
+      const app = buildApp(mockGenerator);
+      // Pre-generate shared stories
+      await request(app, '/api/admin/pre-generate', { method: 'POST' });
+      const preGenCalls = mockGenerator.generatePart.mock.calls.length;
+
+      // Advance and fetch story
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      const res = await request(app, '/api/story/1');
+
+      expect(res.status).toBe(200);
+      expect(res.body.text).toBe('Shared part 1');
+      // No additional generation calls — served from shared store
+      expect(mockGenerator.generatePart.mock.calls.length).toBe(preGenCalls);
+    });
+
+    it('returns responseId and spanContext from shared story for vote linking', async () => {
+      mockGenerator.generatePart = vi.fn().mockResolvedValue({
+        text: 'Shared text', responseId: 'msg_shared_1',
+        spanContext: { traceId: 'trace_shared', spanId: 'span_shared', traceFlags: 1 },
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/pre-generate', { method: 'POST' });
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      // Fetch story to populate session
+      const storyRes = await request(app, '/api/story/1');
+      const cookie = storyRes.headers['set-cookie'][0].split(';')[0].split('=')[1];
+
+      // Vote on it
+      const voteRes = await request(app, '/api/story/1/vote', {
+        method: 'POST', cookies: { sessionId: cookie },
+        body: { vote: 'thumbs_up' },
+      });
+
+      expect(voteRes.status).toBe(200);
+      expect(voteRes.body.responseId).toBe('msg_shared_1');
+    });
+
+    it('falls back to on-demand generation when shared story not available', async () => {
+      // Don't pre-generate — shared store is empty
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      const res = await request(app, '/api/story/1');
+
+      expect(res.status).toBe(200);
+      expect(res.body.text).toBe('The platform engineer gazed at the lunar horizon...');
+      // Called at least once for part 1 (may also pre-gen part 2 in background)
+      expect(mockGenerator.generatePart).toHaveBeenCalledWith(
+        1, config.variantStyle, config.variantModel, config.round
+      );
+    });
+
+    it('on-demand generation stores result in shared store for other users', async () => {
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      // First user triggers on-demand generation
+      await request(app, '/api/story/1');
+      const genCallsBefore = mockGenerator.generatePart.mock.calls.filter(c => c[0] === 1).length;
+
+      // Second user should get the shared story without generating
+      const res2 = await request(app, '/api/story/1');
+      const genCallsAfter = mockGenerator.generatePart.mock.calls.filter(c => c[0] === 1).length;
+
+      expect(res2.status).toBe(200);
+      expect(res2.body.text).toBe('The platform engineer gazed at the lunar horizon...');
+      expect(genCallsAfter).toBe(genCallsBefore); // No new generation call for part 1
+    });
+
+    it('concurrent on-demand requests only generate once (in-flight dedup)', async () => {
+      let resolveGeneration;
+      let callCount = 0;
+      mockGenerator.generatePart = vi.fn().mockImplementation((part) => {
+        callCount++;
+        if (part === 1 && callCount === 1) {
+          return new Promise((resolve) => {
+            resolveGeneration = () => resolve({
+              text: 'Generated once', responseId: 'msg_once',
+              spanContext: { traceId: 't', spanId: 's', traceFlags: 1 },
+            });
+          });
+        }
+        return Promise.resolve({
+          text: `Part ${part}`, responseId: `msg_${part}`,
+          spanContext: { traceId: `t_${part}`, spanId: `s_${part}`, traceFlags: 1 },
+        });
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      // Two concurrent requests for part 1
+      const p1 = request(app, '/api/story/1');
+      const p2 = request(app, '/api/story/1');
+
+      // Resolve the in-flight generation
+      await new Promise(r => setTimeout(r, 50)); // Let both requests enter handler
+      resolveGeneration();
+
+      const [res1, res2] = await Promise.all([p1, p2]);
+
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+      expect(res1.body.text).toBe('Generated once');
+      expect(res2.body.text).toBe('Generated once');
+      // Part 1 should only be generated once
+      const part1Calls = mockGenerator.generatePart.mock.calls.filter(c => c[0] === 1);
+      expect(part1Calls.length).toBe(1);
     });
   });
 
@@ -1251,6 +1372,118 @@ describe('API routes', () => {
       await request(app, '/api/admin/variant-status');
 
       expect(global.fetch).toHaveBeenCalledWith('http://app-1b:8080/api/admin/status');
+    });
+  });
+
+  describe('shared story pre-generation', () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      config.variantUrls = [];
+      global.fetch = originalFetch;
+    });
+
+    it('pre-generates all 5 parts and stores in shared story', async () => {
+      let callCount = 0;
+      mockGenerator.generatePart = vi.fn().mockImplementation((part) => {
+        callCount++;
+        return Promise.resolve({
+          text: `Story part ${part} text`,
+          responseId: `msg_part_${part}`,
+          spanContext: { traceId: `trace_${part}`, spanId: `span_${part}`, traceFlags: 1 },
+        });
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/pre-generate', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.generated).toBe(5);
+      expect(res.body.totalParts).toBe(5);
+      expect(mockGenerator.generatePart).toHaveBeenCalledTimes(5);
+      for (let i = 1; i <= 5; i++) {
+        expect(mockGenerator.generatePart).toHaveBeenCalledWith(
+          i, config.variantStyle, config.variantModel, config.round
+        );
+        const shared = getSharedStory(i);
+        expect(shared).toBeDefined();
+        expect(shared.text).toBe(`Story part ${i} text`);
+        expect(shared.responseId).toBe(`msg_part_${i}`);
+      }
+    });
+
+    it('requires admin secret when ADMIN_SECRET is set', async () => {
+      config.adminSecret = 'test-secret';
+      const app = buildApp(mockGenerator);
+
+      const res = await request(app, '/api/admin/pre-generate', { method: 'POST' });
+      expect(res.status).toBe(401);
+
+      const res2 = await request(app, '/api/admin/pre-generate?secret=test-secret', { method: 'POST' });
+      expect(res2.status).toBe(200);
+
+      config.adminSecret = '';
+    });
+
+    it('reports partial success when some parts fail', async () => {
+      mockGenerator.generatePart = vi.fn().mockImplementation((part) => {
+        if (part === 3) return Promise.reject(new Error('LLM overloaded'));
+        return Promise.resolve({
+          text: `Story part ${part} text`,
+          responseId: `msg_part_${part}`,
+          spanContext: { traceId: `trace_${part}`, spanId: `span_${part}`, traceFlags: 1 },
+        });
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/pre-generate', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.generated).toBe(4);
+      expect(res.body.failed).toEqual([3]);
+      expect(getSharedStory(1)).toBeDefined();
+      expect(getSharedStory(3)).toBeUndefined();
+    });
+
+    it('reset clears shared story store', async () => {
+      mockGenerator.generatePart = vi.fn().mockResolvedValue({
+        text: 'Test story', responseId: 'msg_1', spanContext: null,
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/pre-generate', { method: 'POST' });
+      expect(getSharedStory(1)).toBeDefined();
+
+      await request(app, '/api/admin/reset', { method: 'POST' });
+      expect(getSharedStory(1)).toBeUndefined();
+    });
+
+    it('admin status includes sharedStory generation state', async () => {
+      mockGenerator.generatePart = vi.fn().mockResolvedValue({
+        text: 'Test story', responseId: 'msg_1', spanContext: null,
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/pre-generate', { method: 'POST' });
+      const res = await request(app, '/api/admin/status');
+
+      expect(res.body.sharedStoryParts).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it('forwards pre-generate to variant URLs', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ generated: 5, totalParts: 5, failed: [] }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/pre-generate', { method: 'POST' });
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toBe('http://app-1b:8080/api/admin/pre-generate');
     });
   });
 });

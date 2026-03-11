@@ -20,7 +20,14 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Pre-generation retry with error logging on failure (PREGEN_RETRY_DELAY_MS)
 - Douglas Adams style for funny variant (both rounds)
 - Deadpan narrator style for dry variant (both rounds)
+- Shared story serving: all audience members see the same story per variant
+- Admin pre-generate endpoint (POST /api/admin/pre-generate) generates all 5 parts before demo
+- In-flight deduplication for on-demand generation (concurrent requests share one LLM call)
+- Admin status includes sharedStoryParts array showing pre-generated parts
 
 ### Changed
 - Removed SYNC_DELAY_MS config (replaced by warmup + pre-generation pipeline)
 - Simplified advance route to use readyAt query param only
+- Story endpoint now checks shared store before on-demand generation
+- Warmup stores results in shared store instead of per-session
+- createAdminRouter accepts generator parameter for pre-generation

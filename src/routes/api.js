@@ -7,6 +7,8 @@ import config from '../config.js';
 import { emitEvaluationEvent } from '../telemetry.js';
 
 const sessions = new Map();
+const sharedStory = new Map();
+const inFlightGenerations = new Map();
 let currentPart = 0;
 let readyAt = 0;
 
@@ -14,8 +16,14 @@ export function getCurrentPart() {
   return currentPart;
 }
 
+export function getSharedStory(partNumber) {
+  return sharedStory.get(partNumber);
+}
+
 export function resetState() {
   sessions.clear();
+  sharedStory.clear();
+  inFlightGenerations.clear();
   currentPart = 0;
   readyAt = 0;
 }
@@ -41,30 +49,35 @@ export function createApiRouter(generator) {
     const { session } = getSession(req, res);
     res.json({ warming: true });
 
-    // Eagerly generate part 1 in the background after stagger delay
-    if (!session.parts[1]) {
+    // Eagerly generate part 1 in the background after stagger delay (skip if shared story exists)
+    if (!sharedStory.has(1) && !inFlightGenerations.has(1)) {
       const delay = config.pregenDelayMs;
-      const generate = () => generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
-        .then(result => {
-          if (!session.parts[1]) {
-            session.parts[1] = result;
-          }
-        })
-        .catch(err => {
-          console.error(`Pre-generation failed for part 1 (warmup): ${err.message}`);
-          // Retry once after delay
-          setTimeout(() => {
-            generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
-              .then(result => {
-                if (!session.parts[1]) {
-                  session.parts[1] = result;
-                }
-              })
-              .catch(retryErr => {
-                console.error(`Pre-generation retry failed for part 1 (warmup): ${retryErr.message}`);
-              });
-          }, config.pregenRetryDelayMs);
-        });
+      const generate = () => {
+        const genPromise = generator.generatePart(1, config.variantStyle, config.variantModel, config.round);
+        inFlightGenerations.set(1, genPromise);
+        genPromise
+          .then(result => {
+            if (!sharedStory.has(1)) {
+              sharedStory.set(1, result);
+            }
+          })
+          .catch(err => {
+            console.error(`Pre-generation failed for part 1 (warmup): ${err.message}`);
+            // Retry once after delay
+            setTimeout(() => {
+              generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
+                .then(result => {
+                  if (!sharedStory.has(1)) {
+                    sharedStory.set(1, result);
+                  }
+                })
+                .catch(retryErr => {
+                  console.error(`Pre-generation retry failed for part 1 (warmup): ${retryErr.message}`);
+                });
+            }, config.pregenRetryDelayMs);
+          })
+          .finally(() => inFlightGenerations.delete(1));
+      };
 
       if (delay > 0) {
         setTimeout(generate, delay);
@@ -100,6 +113,7 @@ export function createApiRouter(generator) {
 
     const { session } = getSession(req, res);
 
+    // Check session cache first
     if (session.parts[partNumber]) {
       return res.json({
         part: partNumber,
@@ -109,14 +123,39 @@ export function createApiRouter(generator) {
       });
     }
 
+    // Check shared pre-generated store
+    const shared = sharedStory.get(partNumber);
+    if (shared) {
+      session.parts[partNumber] = { ...shared };
+      return res.json({
+        part: partNumber,
+        totalParts: TOTAL_PARTS,
+        text: shared.text,
+        vote: null,
+      });
+    }
+
+    // Fallback: generate on demand with in-flight deduplication
     try {
+      let resultPromise = inFlightGenerations.get(partNumber);
+      if (!resultPromise) {
+        resultPromise = generator.generatePart(
+          partNumber,
+          config.variantStyle,
+          config.variantModel,
+          config.round
+        );
+        inFlightGenerations.set(partNumber, resultPromise);
+        resultPromise.catch(() => {}).finally(() => inFlightGenerations.delete(partNumber));
+      }
+
       const genStart = Date.now();
-      const result = await generator.generatePart(
-        partNumber,
-        config.variantStyle,
-        config.variantModel,
-        config.round
-      );
+      const result = await resultPromise;
+
+      // Store in shared store so all users get the same story
+      if (!sharedStory.has(partNumber)) {
+        sharedStory.set(partNumber, result);
+      }
 
       if (config.minGenerationDelayMs > 0) {
         const elapsed = Date.now() - genStart;
@@ -126,39 +165,44 @@ export function createApiRouter(generator) {
         }
       }
 
-      session.parts[partNumber] = result;
+      session.parts[partNumber] = { ...result };
 
       res.json({
         part: partNumber,
         totalParts: TOTAL_PARTS,
         text: result.text,
-        vote: session.parts[partNumber].vote || null,
+        vote: null,
       });
 
       // Eagerly pre-generate the next part in the background after stagger delay
       const nextPart = partNumber + 1;
-      if (nextPart <= TOTAL_PARTS && !session.parts[nextPart]) {
-        const generate = () => generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
-          .then(nextResult => {
-            if (!session.parts[nextPart]) {
-              session.parts[nextPart] = nextResult;
-            }
-          })
-          .catch(err => {
-            console.error(`Pre-generation failed for part ${nextPart}: ${err.message}`);
-            // Retry once after delay
-            setTimeout(() => {
-              generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
-                .then(nextResult => {
-                  if (!session.parts[nextPart]) {
-                    session.parts[nextPart] = nextResult;
-                  }
-                })
-                .catch(retryErr => {
-                  console.error(`Pre-generation retry failed for part ${nextPart}: ${retryErr.message}`);
-                });
-            }, config.pregenRetryDelayMs);
-          });
+      if (nextPart <= TOTAL_PARTS && !sharedStory.has(nextPart) && !inFlightGenerations.has(nextPart)) {
+        const generate = () => {
+          const genPromise = generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round);
+          inFlightGenerations.set(nextPart, genPromise);
+          genPromise
+            .then(nextResult => {
+              if (!sharedStory.has(nextPart)) {
+                sharedStory.set(nextPart, nextResult);
+              }
+            })
+            .catch(err => {
+              console.error(`Pre-generation failed for part ${nextPart}: ${err.message}`);
+              // Retry once after delay
+              setTimeout(() => {
+                generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
+                  .then(nextResult => {
+                    if (!sharedStory.has(nextPart)) {
+                      sharedStory.set(nextPart, nextResult);
+                    }
+                  })
+                  .catch(retryErr => {
+                    console.error(`Pre-generation retry failed for part ${nextPart}: ${retryErr.message}`);
+                  });
+              }, config.pregenRetryDelayMs);
+            })
+            .finally(() => inFlightGenerations.delete(nextPart));
+        };
 
         if (config.pregenDelayMs > 0) {
           setTimeout(generate, config.pregenDelayMs);
@@ -248,8 +292,32 @@ function requireSecret(req, res, next) {
   return res.status(401).json({ error: 'Unauthorized' });
 }
 
-export function createAdminRouter() {
+export function createAdminRouter(generator) {
   const router = Router();
+
+  router.post('/pre-generate', requireSecret, async (req, res) => {
+    const failed = [];
+    let generated = 0;
+
+    for (let part = 1; part <= TOTAL_PARTS; part++) {
+      try {
+        const result = await generator.generatePart(
+          part, config.variantStyle, config.variantModel, config.round
+        );
+        sharedStory.set(part, result);
+        generated++;
+        console.log(`Pre-generated part ${part}/${TOTAL_PARTS}`);
+      } catch (err) {
+        console.error(`Pre-generation failed for part ${part}: ${err.message}`);
+        failed.push(part);
+      }
+    }
+
+    // Forward to variant URLs
+    const variants = await forwardToVariants('pre-generate', req.query.secret);
+
+    res.json({ generated, totalParts: TOTAL_PARTS, failed, variants });
+  });
 
   router.post('/advance', requireSecret, async (req, res) => {
     if (currentPart >= TOTAL_PARTS) {
@@ -268,6 +336,8 @@ export function createAdminRouter() {
     currentPart = 0;
     readyAt = 0;
     sessions.clear();
+    sharedStory.clear();
+    inFlightGenerations.clear();
     const variants = await forwardToVariants('reset', req.query.secret);
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
@@ -281,6 +351,7 @@ export function createAdminRouter() {
       round: config.round,
       ready: isReady(),
       readyAt,
+      sharedStoryParts: [...sharedStory.keys()].sort((a, b) => a - b),
     });
   });
 

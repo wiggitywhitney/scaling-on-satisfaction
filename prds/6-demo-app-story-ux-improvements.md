@@ -37,10 +37,10 @@ Both variants generate and become ready before the audience sees content. No mor
 ### M3: Shared Story Serving
 Replace per-user unique stories with one shared story per variant. All audience members see the same story text for a given variant.
 
-- [ ] Admin endpoint to pre-generate all 5 parts for the current variant (generate once, serve to everyone)
-- [ ] Story endpoint serves the shared pre-generated story instead of per-session stories
-- [ ] Pre-generation can run before the demo starts (backstage prep)
-- [ ] Graceful handling if a part hasn't been pre-generated yet (generate on demand as fallback)
+- [x] Admin endpoint to pre-generate all 5 parts for the current variant (generate once, serve to everyone)
+- [x] Story endpoint serves the shared pre-generated story instead of per-session stories
+- [x] Pre-generation can run before the demo starts (backstage prep)
+- [x] Graceful handling if a part hasn't been pre-generated yet (generate on demand as fallback)
 
 ### M4: Make App Stateless
 Remove in-memory sessions so the app can scale horizontally. Flagger needs to add/remove replicas.
@@ -115,6 +115,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 | 2026-03-11 | Pre-generate all parts before demo | With shared stories, all 5 parts can be generated once backstage. Eliminates any audience-facing generation latency and API rate limit risk |
 | 2026-03-11 | Add story.part to vote span events | Enables per-part satisfaction breakdown on Datadog dashboard — tells the overall story of how votes on each section influenced traffic patterns |
 | 2026-03-11 | Fold shared stories + stateless into PRD #6 | Same concern (demo app improvements), avoids awkward sequencing of finishing per-user architecture then immediately replacing it |
+| 2026-03-11 | In-flight deduplication for on-demand generation | If shared story not pre-generated, concurrent audience requests for the same part share one LLM call via promise dedup. Result stored in shared store for all subsequent users |
 
 ## Future Considerations
 

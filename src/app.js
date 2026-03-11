@@ -32,7 +32,7 @@ export function createApp(generator) {
   });
 
   app.use('/api', createApiRouter(generator));
-  app.use('/api/admin', createAdminRouter());
+  app.use('/api/admin', createAdminRouter(generator));
   app.get('/admin', (req, res) => {
     res.sendFile(join(__dirname, 'public', 'admin.html'));
   });
