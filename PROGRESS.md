@@ -49,6 +49,7 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - (2026-03-11) E2E test for advance-without-skipping with bidirectional VARIANT_URLS
 - (2026-03-11) E2E test for admin pre-generate button
 - (2026-03-11) Human verification of Round 1 and Round 2 story quality approved
+- (2026-03-11) Rebuilt and pushed all 4 container images to Docker Hub (story-app-1a, 1b, 2a, 2b)
 
 ### Fixed
 - (2026-03-11) Advance/reset/pre-generate forwarding loop when both instances have VARIANT_URLS pointing at each other

@@ -80,7 +80,7 @@ Human reviews story quality and pacing after Playwright tests pass.
 ### M8: Image Rebuild & Push
 Rebuild and push all 4 container images after verification passes.
 
-- [ ] Rebuild and push all 4 container images to Docker Hub
+- [x] Rebuild and push all 4 container images to Docker Hub
 
 ### M9: Documentation
 Use `/write-docs` to update documentation reflecting all changes.
@@ -98,7 +98,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 - [x] All audience members see the same story per variant (shared stories)
 - [x] App is stateless — no in-memory sessions, Flagger can scale replicas
 - [x] Vote span events include `story.part` attribute for per-part dashboard analysis
-- [ ] All 4 container images rebuilt and pushed with improvements
+- [x] All 4 container images rebuilt and pushed with improvements
 - [ ] Documentation reflects current behavior
 
 ## Decision Log
