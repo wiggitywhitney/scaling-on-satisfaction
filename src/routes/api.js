@@ -289,7 +289,7 @@ export function createAdminRouter(generator) {
         );
         sharedStory.set(part, result);
         generated++;
-        console.log(`Pre-generated part ${part}/${TOTAL_PARTS}`);
+        console.log(`Pre-generated part ${part}/${TOTAL_PARTS}`); // eslint-disable-line no-console
       } catch (err) {
         console.error(`Pre-generation failed for part ${part}: ${err.message}`);
         failed.push(part);

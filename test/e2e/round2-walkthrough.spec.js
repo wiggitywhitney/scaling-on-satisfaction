@@ -4,7 +4,7 @@
 import { test, expect } from '@playwright/test';
 
 const COORDINATOR = 'http://localhost:8080'; // Admin panel + audience app (variant A)
-const VARIANT = 'http://localhost:8081';     // Audience app only (variant B)
+const VARIANT = 'http://localhost:8081';     // Audience app — variant B
 const TOTAL_PARTS = 5;
 
 test.describe('Round 2 Full Walkthrough', () => {
