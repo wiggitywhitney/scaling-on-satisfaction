@@ -6,3 +6,4 @@ journal/
 dist/
 .DS_Store
 .claude/design-decisions.md
+test-results/
