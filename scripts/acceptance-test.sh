@@ -3,5 +3,6 @@
 # ABOUTME: Uses explicit bash subprocess since vals exec resets PATH
 set -euo pipefail
 cd "$(dirname "$0")/.."
-/opt/homebrew/bin/vals exec -f .vals.yaml -- /opt/homebrew/bin/bash -c \
-  'export PATH="/opt/homebrew/bin:$PATH"; npx vitest run test/acceptance-gate.test.js'
+VALS_BIN="$(command -v vals)"
+BASH_BIN="$(command -v bash)"
+"$VALS_BIN" exec -f .vals.yaml -- "$BASH_BIN" -c 'npx vitest run test/acceptance-gate.test.js'

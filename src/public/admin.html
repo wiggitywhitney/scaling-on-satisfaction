@@ -279,7 +279,7 @@
       } finally {
         // refresh() updates disabled state based on currentPart >= totalParts
         // Only re-enable if refresh hasn't already disabled it (at last part)
-        if (mainCurrentPart < 5) btnAdvance.disabled = false;
+        if (mainStatus && mainCurrentPart < mainStatus.totalParts) btnAdvance.disabled = false;
       }
     });
 
