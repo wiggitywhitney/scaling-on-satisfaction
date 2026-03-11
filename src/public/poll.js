@@ -4,7 +4,7 @@
 /**
  * Creates a polling controller that prevents overlapping story fetches.
  * During LLM generation (which can take seconds), multiple poll cycles
- * would otherwise each trigger a new fetch, creating duplicate sessions.
+ * would otherwise each trigger a new fetch, creating duplicate requests.
  *
  * When synchronized loading is active (ready: false in status), the
  * controller fetches the story (overlapping generation with the sync

@@ -152,7 +152,7 @@
         mainStatus = data;
         status.textContent = `${data.currentPart} / ${data.totalParts}`;
         btnAdvance.disabled = data.currentPart >= data.totalParts;
-        info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
+        info.textContent = `${data.sharedStoryParts.length} / ${data.totalParts} parts pre-generated`;
         if (data.readyAt && !data.ready) {
           const remaining = Math.max(0, Math.ceil((data.readyAt - Date.now()) / 1000));
           syncStatusEl.textContent = `Preparing... ${remaining}s`;
@@ -190,7 +190,7 @@
             ok: true,
             currentPart: mainStatus.currentPart,
             totalParts: mainStatus.totalParts,
-            sessions: mainStatus.sessions,
+            sharedStoryParts: mainStatus.sharedStoryParts,
           });
         }
         allVariants.push(...data.variants);
@@ -203,7 +203,7 @@
           }
           const syncClass = v.currentPart === mainCurrentPart ? 'variant-sync' : 'variant-lag';
           return `<div class="variant-card">
-            <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">${v.sessions} session${v.sessions !== 1 ? 's' : ''}</div></div>
+            <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">${(v.sharedStoryParts || []).length} / ${v.totalParts} parts</div></div>
             <div class="variant-part ${syncClass}">${v.currentPart} / ${v.totalParts}</div>
           </div>`;
         }).join('');
@@ -232,7 +232,7 @@
     });
 
     btnReset.addEventListener('click', async () => {
-      if (confirm('Reset story? All audience sessions will be cleared.')) {
+      if (confirm('Reset story? Pre-generated stories will be cleared.')) {
         const res = await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));

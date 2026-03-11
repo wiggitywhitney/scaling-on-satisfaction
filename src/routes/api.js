@@ -1,12 +1,10 @@
-// ABOUTME: API routes for story delivery, voting, and presenter admin controls
-// ABOUTME: Handles story generation, OTel vote events, and multi-variant advancement
+// ABOUTME: Stateless API routes for story delivery, voting, and presenter admin controls
+// ABOUTME: Serves shared pre-generated stories, accepts vote context from clients
 import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import { TOTAL_PARTS } from '../story/prompts.js';
 import config from '../config.js';
 import { emitEvaluationEvent } from '../telemetry.js';
 
-const sessions = new Map();
 const sharedStory = new Map();
 const inFlightGenerations = new Map();
 let currentPart = 0;
@@ -21,7 +19,6 @@ export function getSharedStory(partNumber) {
 }
 
 export function resetState() {
-  sessions.clear();
   sharedStory.clear();
   inFlightGenerations.clear();
   currentPart = 0;
@@ -32,21 +29,10 @@ function isReady() {
   return readyAt === 0 || Date.now() >= readyAt;
 }
 
-function getSession(req, res) {
-  let sessionId = req.cookies.sessionId;
-  if (!sessionId || !sessions.has(sessionId)) {
-    sessionId = uuidv4();
-    res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'lax' });
-    sessions.set(sessionId, { parts: {} });
-  }
-  return { sessionId, session: sessions.get(sessionId) };
-}
-
 export function createApiRouter(generator) {
   const router = Router();
 
   router.post('/story/warmup', (req, res) => {
-    const { session } = getSession(req, res);
     res.json({ warming: true });
 
     // Eagerly generate part 1 in the background after stagger delay (skip if shared story exists)
@@ -88,12 +74,8 @@ export function createApiRouter(generator) {
   });
 
   router.get('/story/status', (req, res) => {
-    const sessionId = req.cookies.sessionId;
-    const session = sessionId ? sessions.get(sessionId) : null;
-    const generatedParts = session
-      ? Object.keys(session.parts).map(Number).sort((a, b) => a - b)
-      : [];
-    res.json({ totalParts: TOTAL_PARTS, generatedParts, currentPart, ready: isReady() });
+    const sharedStoryParts = [...sharedStory.keys()].sort((a, b) => a - b);
+    res.json({ totalParts: TOTAL_PARTS, sharedStoryParts, currentPart, ready: isReady() });
   });
 
   router.get('/story/:part', async (req, res) => {
@@ -111,27 +93,15 @@ export function createApiRouter(generator) {
       return res.status(403).json({ error: 'This part is not available yet', currentPart });
     }
 
-    const { session } = getSession(req, res);
-
-    // Check session cache first
-    if (session.parts[partNumber]) {
-      return res.json({
-        part: partNumber,
-        totalParts: TOTAL_PARTS,
-        text: session.parts[partNumber].text,
-        vote: session.parts[partNumber].vote || null,
-      });
-    }
-
-    // Check shared pre-generated store
+    // Serve from shared pre-generated store
     const shared = sharedStory.get(partNumber);
     if (shared) {
-      session.parts[partNumber] = { ...shared };
       return res.json({
         part: partNumber,
         totalParts: TOTAL_PARTS,
         text: shared.text,
-        vote: null,
+        responseId: shared.responseId,
+        spanContext: shared.spanContext || null,
       });
     }
 
@@ -165,13 +135,12 @@ export function createApiRouter(generator) {
         }
       }
 
-      session.parts[partNumber] = { ...result };
-
       res.json({
         part: partNumber,
         totalParts: TOTAL_PARTS,
         text: result.text,
-        vote: null,
+        responseId: result.responseId,
+        spanContext: result.spanContext || null,
       });
 
       // Eagerly pre-generate the next part in the background after stagger delay
@@ -232,34 +201,26 @@ export function createApiRouter(generator) {
       return res.status(403).json({ error: 'This part is not available yet', currentPart });
     }
 
-    const { vote } = req.body || {};
+    const { vote, responseId, spanContext } = req.body || {};
 
     if (!vote || !VALID_VOTES.includes(vote)) {
       return res.status(400).json({ error: 'Vote must be thumbs_up or thumbs_down' });
     }
 
-    const { session } = getSession(req, res);
-
-    if (!session.parts[partNumber]) {
-      return res.status(400).json({ error: 'Part not generated for this session' });
+    if (!responseId) {
+      return res.status(400).json({ error: 'responseId is required' });
     }
-
-    if (session.parts[partNumber].vote) {
-      return res.status(409).json({ error: 'Already voted on this part' });
-    }
-
-    session.parts[partNumber].vote = vote;
 
     emitEvaluationEvent({
       vote,
-      responseId: session.parts[partNumber].responseId,
-      generationSpanContext: session.parts[partNumber].spanContext || null,
+      responseId,
+      generationSpanContext: spanContext || null,
     });
 
     res.json({
       part: partNumber,
       vote,
-      responseId: session.parts[partNumber].responseId,
+      responseId,
     });
   });
 
@@ -335,7 +296,6 @@ export function createAdminRouter(generator) {
   router.post('/reset', requireSecret, async (req, res) => {
     currentPart = 0;
     readyAt = 0;
-    sessions.clear();
     sharedStory.clear();
     inFlightGenerations.clear();
     const variants = await forwardToVariants('reset', req.query.secret);
@@ -346,7 +306,6 @@ export function createAdminRouter(generator) {
     res.json({
       currentPart,
       totalParts: TOTAL_PARTS,
-      sessions: sessions.size,
       style: config.variantStyle,
       round: config.round,
       ready: isReady(),

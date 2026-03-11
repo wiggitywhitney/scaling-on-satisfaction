@@ -45,10 +45,10 @@ Replace per-user unique stories with one shared story per variant. All audience 
 ### M4: Make App Stateless
 Remove in-memory sessions so the app can scale horizontally. Flagger needs to add/remove replicas.
 
-- [ ] Remove per-user session Map — story text comes from shared pre-generated store
-- [ ] Move `responseId` and `spanContext` to client (send with story response, client sends back with vote)
-- [ ] Vote double-prevention moves to client-side only (already enforced in browser)
-- [ ] Verify app works with multiple replicas (no sticky sessions required)
+- [x] Remove per-user session Map — story text comes from shared pre-generated store
+- [x] Move `responseId` and `spanContext` to client (send with story response, client sends back with vote)
+- [x] Vote double-prevention moves to client-side only (already enforced in browser)
+- [x] Verify app works with multiple replicas (no sticky sessions required)
 
 ### M5: Add Story Part to Vote Telemetry
 Add the story part number to the `gen_ai.evaluation.result` span event so the Datadog dashboard can show satisfaction broken down by part (e.g., "Part 3 always gets thumbs down because it's the cliffhanger").
@@ -62,8 +62,8 @@ Verify all changes work end-to-end, rebuild container images with the improvemen
 - [x] Stories generate at ~100 words per part (both rounds, all variants)
 - [x] Character is consistent across all story parts and variants
 - [x] Synchronized loading works with paired variants
-- [ ] Shared story serving works (all users see same story)
-- [ ] App is stateless (no per-user sessions)
+- [x] Shared story serving works (all users see same story)
+- [x] App is stateless (no per-user sessions)
 - [ ] `story.part` attribute appears in OTel span events
 - [ ] Rebuild and push all 4 container images to Docker Hub
 - [ ] Human verification of Round 1 (moon/space) story quality and pacing
@@ -82,8 +82,8 @@ Use `/write-docs` to update documentation reflecting all changes.
 - [x] Stories are ~100 words per part (down from current length)
 - [x] A named, human-approved character appears consistently across all variants
 - [x] Both variants are ready before audience sees content (no loading lag)
-- [ ] All audience members see the same story per variant (shared stories)
-- [ ] App is stateless — no in-memory sessions, Flagger can scale replicas
+- [x] All audience members see the same story per variant (shared stories)
+- [x] App is stateless — no in-memory sessions, Flagger can scale replicas
 - [ ] Vote span events include `story.part` attribute for per-part dashboard analysis
 - [ ] All 4 container images rebuilt and pushed with improvements
 - [ ] Documentation reflects current behavior

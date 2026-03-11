@@ -31,3 +31,9 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Story endpoint now checks shared store before on-demand generation
 - Warmup stores results in shared store instead of per-session
 - createAdminRouter accepts generator parameter for pre-generation
+- App is now stateless: removed per-user session Map, cookies, and uuid dependency
+- Story response includes responseId and spanContext for client-side vote correlation
+- Vote endpoint accepts responseId and spanContext from request body instead of server-side session lookup
+- Vote double-prevention moved to client-side only (server no longer tracks votes)
+- Admin panel shows pre-generated parts count instead of active sessions
+- API route tests rewritten for stateless contract (88 tests, 192 total)

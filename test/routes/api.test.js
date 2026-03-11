@@ -1,8 +1,7 @@
 // ABOUTME: Tests for API routes — story delivery, voting, and admin controls
-// ABOUTME: Verifies story generation flow, OTel vote events, and multi-variant admin
+// ABOUTME: Verifies stateless story serving, OTel vote events, and multi-variant admin
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
-import cookieParser from 'cookie-parser';
 
 vi.mock('../../src/telemetry.js', () => ({
   emitEvaluationEvent: vi.fn(),
@@ -14,18 +13,13 @@ import config from '../../src/config.js';
 
 function buildApp(mockGenerator) {
   const app = express();
-  app.use(cookieParser());
   app.use(express.json());
   app.use('/api', createApiRouter(mockGenerator));
   app.use('/api/admin', createAdminRouter(mockGenerator));
   return app;
 }
 
-async function request(app, path, { cookies = {}, method = 'GET', body = null } = {}) {
-  const cookieHeader = Object.entries(cookies)
-    .map(([k, v]) => `${k}=${v}`)
-    .join('; ');
-
+async function request(app, path, { method = 'GET', body = null } = {}) {
   const { default: http } = await import('node:http');
   const server = http.createServer(app);
 
@@ -39,7 +33,6 @@ async function request(app, path, { cookies = {}, method = 'GET', body = null } 
         method,
         headers: {},
       };
-      if (cookieHeader) options.headers.Cookie = cookieHeader;
       if (body !== null) {
         options.headers['Content-Type'] = 'application/json';
       }
@@ -114,28 +107,34 @@ describe('API routes', () => {
       expect(res.body.text).toBe('The platform engineer gazed at the lunar horizon...');
     });
 
-    it('sets a session cookie on first request', async () => {
+    it('includes responseId and spanContext in response', async () => {
       const app = buildApp(mockGenerator);
       await request(app, '/api/admin/advance', { method: 'POST' });
       const res = await request(app, '/api/story/1');
 
-      expect(res.headers['set-cookie']).toBeDefined();
-      const cookie = res.headers['set-cookie'][0];
-      expect(cookie).toMatch(/sessionId=/);
+      expect(res.status).toBe(200);
+      expect(res.body.responseId).toBe('msg_test_001');
+      expect(res.body.spanContext).toEqual({ traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 });
     });
 
-    it('caches story part for same session', async () => {
+    it('does not set a session cookie', async () => {
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+      const res = await request(app, '/api/story/1');
+
+      expect(res.headers['set-cookie']).toBeUndefined();
+    });
+
+    it('serves same shared story to multiple requests without regenerating', async () => {
       const app = buildApp(mockGenerator);
       await request(app, '/api/admin/advance', { method: 'POST' });
 
       const res1 = await request(app, '/api/story/1');
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
+      const res2 = await request(app, '/api/story/1');
 
-      const res2 = await request(app, '/api/story/1', { cookies: { sessionId } });
-
-      // Part 1 generated once (cached on second fetch); pre-generation may add a call for part 2
-      expect(mockGenerator.generatePart).toHaveBeenCalledWith(1, config.variantStyle, config.variantModel, config.round);
+      // Part 1 generated once; pre-generation may add a call for part 2
+      const part1Calls = mockGenerator.generatePart.mock.calls.filter(c => c[0] === 1);
+      expect(part1Calls.length).toBe(1);
       expect(res2.body.text).toBe(res1.body.text);
     });
 
@@ -205,14 +204,20 @@ describe('API routes', () => {
       await request(app, '/api/admin/pre-generate', { method: 'POST' });
       await request(app, '/api/admin/advance', { method: 'POST' });
 
-      // Fetch story to populate session
       const storyRes = await request(app, '/api/story/1');
-      const cookie = storyRes.headers['set-cookie'][0].split(';')[0].split('=')[1];
+      expect(storyRes.body.responseId).toBe('msg_shared_1');
+      expect(storyRes.body.spanContext).toEqual({
+        traceId: 'trace_shared', spanId: 'span_shared', traceFlags: 1,
+      });
 
-      // Vote on it
+      // Vote using responseId and spanContext from story response
       const voteRes = await request(app, '/api/story/1/vote', {
-        method: 'POST', cookies: { sessionId: cookie },
-        body: { vote: 'thumbs_up' },
+        method: 'POST',
+        body: {
+          vote: 'thumbs_up',
+          responseId: storyRes.body.responseId,
+          spanContext: storyRes.body.spanContext,
+        },
       });
 
       expect(voteRes.status).toBe(200);
@@ -300,7 +305,7 @@ describe('API routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.totalParts).toBe(5);
       expect(res.body.currentPart).toBe(0);
-      expect(res.body.generatedParts).toEqual([]);
+      expect(res.body.sharedStoryParts).toEqual([]);
     });
 
     it('reflects currentPart after presenter advances', async () => {
@@ -311,50 +316,23 @@ describe('API routes', () => {
       expect(res.body.currentPart).toBe(1);
     });
 
-    it('does not create a session on poll', async () => {
+    it('shows sharedStoryParts after pre-generation', async () => {
       const app = buildApp(mockGenerator);
-      await request(app, '/api/story/status');
-      await request(app, '/api/story/status');
-      await request(app, '/api/story/status');
+      await request(app, '/api/admin/pre-generate', { method: 'POST' });
+      const res = await request(app, '/api/story/status');
 
-      const adminRes = await request(app, '/api/admin/status');
-      expect(adminRes.body.sessions).toBe(0);
-    });
-
-    it('shows generated parts after fetching a story part', async () => {
-      const app = buildApp(mockGenerator);
-      await request(app, '/api/admin/advance', { method: 'POST' });
-
-      const res1 = await request(app, '/api/story/1');
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
-
-      // Allow pre-generation to complete
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      const res2 = await request(app, '/api/story/status', { cookies: { sessionId } });
-
-      // Part 1 is always present; part 2 may be pre-generated
-      expect(res2.body.generatedParts).toContain(1);
+      expect(res.body.sharedStoryParts).toEqual([1, 2, 3, 4, 5]);
     });
   });
 
   describe('POST /api/story/:part/vote', () => {
-    async function setupSessionWithPart(app, mockGen) {
-      await request(app, '/api/admin/advance', { method: 'POST' });
-      const res = await request(app, '/api/story/1');
-      const cookie = res.headers['set-cookie'][0].split(';')[0];
-      return cookie.split('=')[1];
-    }
-
-    it('accepts thumbs_up vote and returns vote with responseId', async () => {
+    it('accepts thumbs_up vote with responseId and returns it', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       const res = await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_up' },
+        body: { vote: 'thumbs_up', responseId: 'msg_test_001', spanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 } },
       });
 
       expect(res.status).toBe(200);
@@ -365,46 +343,37 @@ describe('API routes', () => {
 
     it('accepts thumbs_down vote', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       const res = await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_down' },
+        body: { vote: 'thumbs_down', responseId: 'msg_test_001' },
       });
 
       expect(res.status).toBe(200);
       expect(res.body.vote).toBe('thumbs_down');
     });
 
-    it('rejects vote change after initial vote is locked', async () => {
+    it('returns 400 when responseId is missing', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
-
-      await request(app, '/api/story/1/vote', {
-        method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_up' },
-      });
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       const res = await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_down' },
+        body: { vote: 'thumbs_up' },
       });
 
-      expect(res.status).toBe(409);
-      expect(res.body.error).toMatch(/already voted/i);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/responseId/i);
     });
 
     it('returns 400 for invalid vote value', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       const res = await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'invalid' },
+        body: { vote: 'invalid', responseId: 'msg_test_001' },
       });
 
       expect(res.status).toBe(400);
@@ -413,44 +382,21 @@ describe('API routes', () => {
 
     it('returns 400 when vote field is missing', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       const res = await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: {},
+        body: { responseId: 'msg_test_001' },
       });
 
       expect(res.status).toBe(400);
-    });
-
-    it('returns 400 for part not yet generated by this session', async () => {
-      const app = buildApp(mockGenerator);
-      // Advance to parts 1-3, generate part 1 only
-      // Use part 3 for the vote test to avoid pre-generation of part 2
-      await request(app, '/api/admin/advance', { method: 'POST' });
-      await request(app, '/api/admin/advance', { method: 'POST' });
-      await request(app, '/api/admin/advance', { method: 'POST' });
-      const res1 = await request(app, '/api/story/1');
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
-
-      // Part 3 was never generated (pre-gen only does N+1, so part 1 pre-gens part 2)
-      const res = await request(app, '/api/story/3/vote', {
-        method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_up' },
-      });
-
-      expect(res.status).toBe(400);
-      expect(res.body.error).toMatch(/not generated/i);
     });
 
     it('returns 403 for part not yet advanced by presenter', async () => {
       const app = buildApp(mockGenerator);
       const res = await request(app, '/api/story/1/vote', {
         method: 'POST',
-        body: { vote: 'thumbs_up' },
+        body: { vote: 'thumbs_up', responseId: 'msg_test_001' },
       });
 
       expect(res.status).toBe(403);
@@ -460,7 +406,7 @@ describe('API routes', () => {
       const app = buildApp(mockGenerator);
       const res = await request(app, '/api/story/6/vote', {
         method: 'POST',
-        body: { vote: 'thumbs_up' },
+        body: { vote: 'thumbs_up', responseId: 'msg_test_001' },
       });
 
       expect(res.status).toBe(404);
@@ -468,12 +414,15 @@ describe('API routes', () => {
 
     it('emits OTel evaluation event on thumbs_up vote', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_up' },
+        body: {
+          vote: 'thumbs_up',
+          responseId: 'msg_test_001',
+          spanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
+        },
       });
 
       expect(emitEvaluationEvent).toHaveBeenCalledOnce();
@@ -486,12 +435,15 @@ describe('API routes', () => {
 
     it('emits OTel evaluation event on thumbs_down vote', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_down' },
+        body: {
+          vote: 'thumbs_down',
+          responseId: 'msg_test_001',
+          spanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
+        },
       });
 
       expect(emitEvaluationEvent).toHaveBeenCalledWith({
@@ -501,85 +453,86 @@ describe('API routes', () => {
       });
     });
 
-    it('does not emit OTel event on rejected vote change', async () => {
+    it('emits OTel event with null spanContext when not provided', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_up' },
-      });
-      await request(app, '/api/story/1/vote', {
-        method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_down' },
+        body: { vote: 'thumbs_up', responseId: 'msg_test_001' },
       });
 
-      expect(emitEvaluationEvent).toHaveBeenCalledTimes(1);
-      expect(emitEvaluationEvent.mock.calls[0][0].vote).toBe('thumbs_up');
+      expect(emitEvaluationEvent).toHaveBeenCalledWith({
+        vote: 'thumbs_up',
+        responseId: 'msg_test_001',
+        generationSpanContext: null,
+      });
     });
 
     it('does not emit OTel event on invalid vote', async () => {
       const app = buildApp(mockGenerator);
-      const sessionId = await setupSessionWithPart(app, mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
 
       await request(app, '/api/story/1/vote', {
         method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'invalid' },
+        body: { vote: 'invalid', responseId: 'msg_test_001' },
       });
 
       expect(emitEvaluationEvent).not.toHaveBeenCalled();
     });
+
+    it('allows multiple votes from different clients (no server-side dedup)', async () => {
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      const res1 = await request(app, '/api/story/1/vote', {
+        method: 'POST',
+        body: { vote: 'thumbs_up', responseId: 'msg_test_001' },
+      });
+      const res2 = await request(app, '/api/story/1/vote', {
+        method: 'POST',
+        body: { vote: 'thumbs_down', responseId: 'msg_test_001' },
+      });
+
+      expect(res1.status).toBe(200);
+      expect(res2.status).toBe(200);
+      expect(emitEvaluationEvent).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('POST /api/story/warmup', () => {
-    it('creates a session and starts pre-generating part 1', async () => {
-      const app = buildApp(mockGenerator);
-      const res = await request(app, '/api/story/warmup', { method: 'POST' });
-
-      expect(res.status).toBe(200);
-      expect(res.headers['set-cookie']).toBeDefined();
-
-      // Wait for background generation
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      // Part 1 should be pre-generated in the session
-      const cookie = res.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
-
-      // Advance and fetch — should use cached part
-      await request(app, '/api/admin/advance', { method: 'POST' });
-      const storyRes = await request(app, '/api/story/1', { cookies: { sessionId } });
-
-      expect(storyRes.status).toBe(200);
-      expect(storyRes.body.text).toBe('The platform engineer gazed at the lunar horizon...');
-      // Only 1 generation call total (from warmup), not 2
-      expect(mockGenerator.generatePart).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not regenerate if session already has part 1', async () => {
-      const app = buildApp(mockGenerator);
-      const res1 = await request(app, '/api/story/warmup', { method: 'POST' });
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
-
-      // Second warmup with same session
-      await request(app, '/api/story/warmup', { method: 'POST', cookies: { sessionId } });
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      expect(mockGenerator.generatePart).toHaveBeenCalledTimes(1);
-    });
-
-    it('returns session cookie even before admin advances', async () => {
+    it('starts pre-generating part 1 in shared store', async () => {
       const app = buildApp(mockGenerator);
       const res = await request(app, '/api/story/warmup', { method: 'POST' });
 
       expect(res.status).toBe(200);
       expect(res.body.warming).toBe(true);
+
+      // Wait for background generation
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Part 1 should be pre-generated in shared store
+      expect(getSharedStory(1)).toBeDefined();
+      expect(getSharedStory(1).text).toBe('The platform engineer gazed at the lunar horizon...');
+    });
+
+    it('does not regenerate if shared store already has part 1', async () => {
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/story/warmup', { method: 'POST' });
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Second warmup should not trigger another generation
+      await request(app, '/api/story/warmup', { method: 'POST' });
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(mockGenerator.generatePart).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not set session cookie', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/story/warmup', { method: 'POST' });
+
+      expect(res.headers['set-cookie']).toBeUndefined();
     });
   });
 
@@ -603,15 +556,13 @@ describe('API routes', () => {
       await request(app, '/api/admin/advance', { method: 'POST' });
 
       // Fetch part 1 — triggers pre-generation of part 2
-      const res1 = await request(app, '/api/story/1');
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
+      await request(app, '/api/story/1');
 
       // Wait for pre-generation to complete
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Fetch part 2 — should use pre-generated cache
-      const res2 = await request(app, '/api/story/2', { cookies: { sessionId } });
+      const res2 = await request(app, '/api/story/2');
 
       expect(res2.status).toBe(200);
       expect(res2.body.text).toBe('Story part 2');
@@ -637,21 +588,19 @@ describe('API routes', () => {
       expect(mockGenerator.generatePart).toHaveBeenCalledWith(5, config.variantStyle, config.variantModel, config.round);
     });
 
-    it('does not pre-generate if next part is already cached', async () => {
+    it('does not pre-generate if next part is already in shared store', async () => {
       const app = buildApp(mockGenerator);
       await request(app, '/api/admin/advance', { method: 'POST' });
       await request(app, '/api/admin/advance', { method: 'POST' });
 
       // Fetch part 1
-      const res1 = await request(app, '/api/story/1');
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
+      await request(app, '/api/story/1');
 
       // Wait for pre-generation of part 2
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Fetch part 1 again — should not re-trigger pre-generation
-      await request(app, '/api/story/1', { cookies: { sessionId } });
+      await request(app, '/api/story/1');
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Two calls total: part 1 generation + part 2 pre-generation
@@ -696,15 +645,10 @@ describe('API routes', () => {
           expect.stringContaining('Pre-generation failed for part 2')
         );
 
-        const cookie = res1.headers['set-cookie'][0].split(';')[0];
-        const sessionId = cookie.split('=')[1];
-
         // Fetch part 2 — should use the retry result
-        const res2 = await request(app, '/api/story/2', { cookies: { sessionId } });
+        const res2 = await request(app, '/api/story/2');
         expect(res2.status).toBe(200);
         // 3 calls: part 1 gen, part 2 pre-gen (fails), part 2 retry (succeeds)
-        // Part 2 fetch uses cache, no new gen. Part 2 serving also triggers part 3 pre-gen
-        // but part 2 is served from cache so no pre-gen of part 3
         expect(failingGenerator.generatePart).toHaveBeenCalledTimes(3);
       } finally {
         config.pregenRetryDelayMs = previousRetryDelay;
@@ -800,54 +744,25 @@ describe('API routes', () => {
       }
     });
 
-    it('does not delay cached responses', async () => {
+    it('does not delay cached responses from shared store', async () => {
       const previousDelay = config.minGenerationDelayMs;
       config.minGenerationDelayMs = 200;
       try {
         const app = buildApp(mockGenerator);
         await request(app, '/api/admin/advance', { method: 'POST' });
 
-        const res1 = await request(app, '/api/story/1');
-        const cookie = res1.headers['set-cookie'][0].split(';')[0];
-        const sessionId = cookie.split('=')[1];
+        // First request triggers generation (with delay)
+        await request(app, '/api/story/1');
 
+        // Second request serves from shared store (no delay)
         const start = Date.now();
-        await request(app, '/api/story/1', { cookies: { sessionId } });
+        await request(app, '/api/story/1');
         const elapsed = Date.now() - start;
 
         expect(elapsed).toBeLessThan(100);
       } finally {
         config.minGenerationDelayMs = previousDelay;
       }
-    });
-  });
-
-  describe('GET /api/story/:part vote field', () => {
-    it('returns vote: null when no vote cast', async () => {
-      const app = buildApp(mockGenerator);
-      await request(app, '/api/admin/advance', { method: 'POST' });
-      const res = await request(app, '/api/story/1');
-
-      expect(res.body.vote).toBeNull();
-    });
-
-    it('returns vote value after voting', async () => {
-      const app = buildApp(mockGenerator);
-      await request(app, '/api/admin/advance', { method: 'POST' });
-
-      const res1 = await request(app, '/api/story/1');
-      const cookie = res1.headers['set-cookie'][0].split(';')[0];
-      const sessionId = cookie.split('=')[1];
-
-      await request(app, '/api/story/1/vote', {
-        method: 'POST',
-        cookies: { sessionId },
-        body: { vote: 'thumbs_up' },
-      });
-
-      const res2 = await request(app, '/api/story/1', { cookies: { sessionId } });
-
-      expect(res2.body.vote).toBe('thumbs_up');
     });
   });
 
@@ -1259,6 +1174,13 @@ describe('API routes', () => {
       expect(res.body.style).toBe(config.variantStyle);
       expect(res.body.round).toBe(config.round);
     });
+
+    it('does not include sessions count (stateless)', async () => {
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/status');
+
+      expect(res.body.sessions).toBeUndefined();
+    });
   });
 
   describe('variant status', () => {
@@ -1287,7 +1209,7 @@ describe('API routes', () => {
       config.variantUrls = ['http://app-1a:8080', 'http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ currentPart: 2, totalParts: 5, sessions: 10 }),
+        json: () => Promise.resolve({ currentPart: 2, totalParts: 5 }),
       });
 
       const app = buildApp(mockGenerator);
@@ -1303,7 +1225,6 @@ describe('API routes', () => {
         ok: true,
         currentPart: 2,
         totalParts: 5,
-        sessions: 10,
       });
     });
 
@@ -1312,7 +1233,7 @@ describe('API routes', () => {
       config.variantLabels = ['Round 1 Funny', 'Round 1 Dry'];
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 5 }),
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
       });
 
       const app = buildApp(mockGenerator);
@@ -1326,7 +1247,7 @@ describe('API routes', () => {
       config.variantUrls = ['http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 3, style: 'funny', round: 1 }),
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, style: 'funny', round: 1 }),
       });
 
       const app = buildApp(mockGenerator);
@@ -1339,7 +1260,7 @@ describe('API routes', () => {
       config.variantUrls = ['http://app-1b:8080'];
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 3 }),
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
       });
 
       const app = buildApp(mockGenerator);
@@ -1365,7 +1286,7 @@ describe('API routes', () => {
       config.variantUrls = ['http://app-1b:8080/'];
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ currentPart: 1, totalParts: 5, sessions: 2 }),
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
       });
 
       const app = buildApp(mockGenerator);

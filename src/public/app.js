@@ -5,6 +5,8 @@ import { createPollController } from './poll.js';
 const POLL_INTERVAL_MS = 2000;
 
 let voteLocked = false;
+let currentResponseId = null;
+let currentSpanContext = null;
 
 const welcome = document.getElementById('welcome');
 const story = document.getElementById('story');
@@ -49,7 +51,7 @@ async function submitVote(vote) {
     const res = await fetch(`/api/story/${currentDisplayedPart}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vote }),
+      body: JSON.stringify({ vote, responseId: currentResponseId, spanContext: currentSpanContext }),
     });
     if (!res.ok) return;
 
@@ -112,7 +114,9 @@ const controller = createPollController({
     storyText.classList.add('visible');
     progress.textContent = `Part ${data.part} of ${data.totalParts}`;
     currentDisplayedPart = data.part;
-    showVoteButtons(data.vote);
+    currentResponseId = data.responseId || null;
+    currentSpanContext = data.spanContext || null;
+    showVoteButtons(null);
   },
   onError: (err) => {
     loading.classList.remove('active');
