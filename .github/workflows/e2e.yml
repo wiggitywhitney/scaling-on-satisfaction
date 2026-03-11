@@ -1,0 +1,39 @@
+name: E2E Tests
+on:
+  workflow_dispatch:
+    inputs:
+      round:
+        description: 'Round to test (1, 2, or both)'
+        required: false
+        default: '1'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - 'both'
+  pull_request:
+    types: [labeled]
+
+jobs:
+  e2e:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.label.name == 'run-e2e')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests (Round ${{ github.event.inputs.round || '1' }})
+        run: ./scripts/e2e-test.sh "${{ github.event.inputs.round || '1' }}"

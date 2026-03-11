@@ -160,7 +160,7 @@ export function buildPrompt(partNumber, style, round = 1) {
     ? {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about Rae Okonkwo, a backend developer performing the Houdini act at the Clown Native Computing Foundation circus.`,
-        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. Do not display a word count. Every sentence must advance the story or land a joke — cut anything that doesn't.`,
+        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. NEVER include a word count, meta-commentary, or any text that isn't part of the story itself. Every sentence must advance the story or land a joke — cut anything that doesn't.`,
         ...shared,
         styleInstruction,
       ],
@@ -168,13 +168,13 @@ export function buildPrompt(partNumber, style, round = 1) {
     : {
       funny: [
         `You are a creative storyteller writing a serialized 5-part story about Nyx Vasquez, a platform engineer on the moon.`,
-        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. Do not display a word count. Every sentence must advance the story or land a joke — cut anything that doesn't.`,
+        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. NEVER include a word count, meta-commentary, or any text that isn't part of the story itself. Every sentence must advance the story or land a joke — cut anything that doesn't.`,
         ...shared,
         styleInstruction,
       ],
       dry: [
         `You are a deadpan narrator telling a serialized 5-part story about Nyx Vasquez, a platform engineer deployed to the lunar surface. Your tone is completely serious, precise, and humorless — but you are telling a story, not writing an academic paper. The audience should follow the plot easily.`,
-        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. Do not display a word count. Every sentence must advance the narrative or establish the situation clearly — cut anything that doesn't.`,
+        `HARD LIMIT: 100 words MAXIMUM. If your response exceeds 100 words, it will be rejected. NEVER include a word count, meta-commentary, or any text that isn't part of the story itself. Every sentence must advance the narrative or establish the situation clearly — cut anything that doesn't.`,
         ...shared,
         styleInstruction,
       ],

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "./scripts/e2e-test.sh"
   },
   "repository": {
     "type": "git",

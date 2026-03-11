@@ -66,10 +66,10 @@ Expand Playwright e2e tests to automate story verification for both rounds. Test
 - [x] App is stateless (no per-user sessions)
 - [x] `story.part` attribute appears in OTel span events
 - [x] Update existing e2e tests for shared-story stateless architecture
-- [ ] Round 1 e2e: admin advances through all 5 parts, both variants show stories, vote buttons work
-- [ ] Round 2 e2e: admin advances through all 5 parts, both model variants show stories, variant labels show model names (Haiku/Opus)
-- [ ] E2e test verifies pre-generation (warmup on page load, next-part pre-gen after serving)
-- [ ] All Playwright e2e tests pass
+- [x] Round 1 e2e: admin advances through all 5 parts, both variants show stories, vote buttons work
+- [x] Round 2 e2e: admin advances through all 5 parts, both model variants show stories, variant labels show model names (Haiku/Opus)
+- [x] E2e test verifies pre-generation (warmup on page load, next-part pre-gen after serving)
+- [x] All Playwright e2e tests pass
 
 ### M7: Human Verification
 Human reviews story quality and pacing after Playwright tests pass.
@@ -97,7 +97,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 - [x] Both variants are ready before audience sees content (no loading lag)
 - [x] All audience members see the same story per variant (shared stories)
 - [x] App is stateless — no in-memory sessions, Flagger can scale replicas
-- [ ] Vote span events include `story.part` attribute for per-part dashboard analysis
+- [x] Vote span events include `story.part` attribute for per-part dashboard analysis
 - [ ] All 4 container images rebuilt and pushed with improvements
 - [ ] Documentation reflects current behavior
 
