@@ -36,12 +36,14 @@ Starting split: 100/0 (everyone on cheap). Flagger canary-deploys the expensive 
 
 ### How It Works
 
-Each audience member loads the app on their phone. The presenter advances the story one part at a time. For each part:
+Before the demo, the presenter pre-generates all 5 story parts for each variant via the admin panel. All audience members see the same story text per variant — no per-user generation.
+
+During the demo, the presenter advances the story one part at a time. For each part:
 
 1. The audience member's phone requests the next story part
-2. The app generates a unique version via the Anthropic API
+2. The app serves the shared pre-generated story for that variant
 3. The audience reads the story and votes thumbs up or thumbs down
-4. The vote emits a `gen_ai.evaluation.result` OTel span event
+4. The vote emits a `gen_ai.evaluation.result` OTel span event with a `story.part` attribute
 5. The OTel Collector counts votes per variant as Prometheus metrics
 6. Flagger reads the metrics and shifts Knative traffic toward the winner
 
@@ -92,7 +94,7 @@ docker run -d --network story-net -p 8082:8080 -e ANTHROPIC_API_KEY --name app-1
   -e VARIANT_URLS=http://app-1a:8080 \
   wiggitywhitney/story-app-1b:latest
 
-# Advance/reset both from app-1b's admin at http://localhost:8082/admin
+# Pre-generate, advance, and reset both from app-1b's admin at http://localhost:8082/admin
 ```
 
 This assumes `ANTHROPIC_API_KEY` is already set in your shell. The audience UI is at `http://localhost:<port>` and presenter controls are at `/admin`.
@@ -103,7 +105,11 @@ This assumes `ANTHROPIC_API_KEY` is already set in your shell. The audience UI i
 |----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | | Anthropic API key for story generation |
 | `PORT` | `8080` | HTTP listen port |
-| `SYNC_DELAY_MS` | `0` | Milliseconds to gate story display after advance (synchronized loading) |
+| `VARIANT_URLS` | | Comma-separated URLs of other variant instances for coordinated admin controls |
+| `VARIANT_LABELS` | | Comma-separated display labels for variant instances in the admin panel |
+| `ADMIN_SECRET` | | Secret for authenticating admin mutation endpoints |
+| `PREGEN_DELAY_MS` | `2000` | Stagger delay before background pre-generation starts (avoids rate-limit competition when variants share an API key) |
+| `PREGEN_RETRY_DELAY_MS` | `5000` | Delay before retrying a failed background pre-generation |
 | `MIN_GENERATION_DELAY_MS` | `0` | Minimum milliseconds before returning a generated story part |
 
 All other configuration (`VARIANT_STYLE`, `VARIANT_MODEL`, `ROUND`) is baked into container images at build time via the build scripts.
@@ -156,20 +162,27 @@ Example:
 
 The presenter controls story pacing from `/admin`. The audience UI at `/` polls the server and auto-loads each new part when the presenter advances.
 
+- **Pre-generate**: generates all 5 story parts for this variant and all coordinated variants (backstage prep before the demo starts)
 - **Advance**: moves all variants to the next story part
-- **Reset**: clears all audience sessions and returns to the welcome screen
+- **Reset**: clears all pre-generated stories and returns to the welcome screen
 
 When `ADMIN_SECRET` is set, the presenter bookmarks `/admin?secret=<value>` and mutation endpoints require the secret automatically.
 
-When `VARIANT_URLS` is set, a single advance/reset command forwards to all variant servers. The admin page shows per-variant status with sync indicators.
+When `VARIANT_URLS` is set, a single pre-generate/advance/reset command forwards to all variant servers. The admin page shows per-variant status with sync indicators.
 
-## Synchronized Variant Loading
+## Shared Story Serving
 
-During the live demo, both variants need to display story content at roughly the same time — otherwise one variant shows content while the other is still generating, creating an awkward pause.
+During the live demo, both variants need their stories ready before the audience sees content. Rather than generating stories on the fly, the presenter pre-generates all 5 parts backstage before the demo starts.
 
-The `SYNC_DELAY_MS` environment variable gates story display. When the presenter advances to the next part, the coordinator sets a `readyAt` timestamp (`now + SYNC_DELAY_MS`) and forwards it to all variants. The audience UI polls `/api/story/status` and waits until the `ready` flag is `true` before requesting the story part. This gives both variants time to generate their unique stories before anyone sees content.
+The pre-generate command (available from the admin panel or `POST /api/admin/pre-generate`) generates each part sequentially and interleaves across coordinated variants — part 1 on all variants before part 2, so if interrupted, both variants are ready to the same point. Two variants sharing one Anthropic API key stagger their generation using `PREGEN_DELAY_MS` to avoid rate-limit competition.
 
-Set `SYNC_DELAY_MS` high enough to cover the slowest expected generation time across both variants (e.g., `15000` for 15 seconds). Each audience member still gets a unique AI-generated story — the delay just ensures both variants are ready before the audience starts reading.
+If a part hasn't been pre-generated when an audience member requests it, the app falls back to on-demand generation with in-flight deduplication — concurrent requests for the same part share a single LLM call, and the result is stored for all subsequent users.
+
+## Stateless Architecture
+
+The app has no per-user sessions. All audience members receive the same pre-generated story text for their variant. Vote context (`responseId`, `spanContext`) is sent to the client with the story response and returned by the client when submitting a vote — the server stores nothing per-user.
+
+This means Flagger can scale replicas up and down freely. Any replica can serve any request with no sticky sessions or shared state required.
 
 ## Platform Integration
 
@@ -190,6 +203,7 @@ Each vote emits a span event with these attributes:
 | `gen_ai.evaluation.score.label` | `thumbs_up` or `thumbs_down` |
 | `gen_ai.evaluation.score.value` | `1.0` or `0.0` |
 | `gen_ai.response.id` | ID of the generation being evaluated |
+| `story.part` | Story part number (1–5) for per-part satisfaction analysis |
 
 The evaluation span is linked to the GenAI operation span via span links.
 

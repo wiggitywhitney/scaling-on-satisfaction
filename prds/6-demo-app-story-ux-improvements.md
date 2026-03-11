@@ -88,7 +88,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 - [x] Update README with character info and new story length
 - [x] Document synchronized loading behavior and configuration
 - [x] Update any deployment docs affected by the changes
-- [ ] Update README with `/write-docs` to reflect shared story serving, stateless architecture, story.part telemetry, and rebuilt images
+- [x] Update README with `/write-docs` to reflect shared story serving, stateless architecture, story.part telemetry, and rebuilt images
 
 ## Success Criteria
 
@@ -99,7 +99,7 @@ Use `/write-docs` to update documentation reflecting all changes.
 - [x] App is stateless — no in-memory sessions, Flagger can scale replicas
 - [x] Vote span events include `story.part` attribute for per-part dashboard analysis
 - [x] All 4 container images rebuilt and pushed with improvements
-- [ ] Documentation reflects current behavior
+- [x] Documentation reflects current behavior
 
 ## Decision Log
 
