@@ -1,0 +1,6 @@
+{
+  "commands": {
+    "acceptance_test": "./scripts/acceptance-test.sh",
+    "acceptance_test_ci": "acceptance-gate.yml"
+  }
+}

@@ -1,0 +1,39 @@
+# Acceptance Gate CI — run LLM-calling tests asynchronously on PR creation
+#
+# Triggered by: gh workflow run (from pre-pr-hook.sh async path)
+# Purpose: Run acceptance gate tests in CI so PR creation isn't blocked (~28min saved).
+# See claude-config PRD #35 for design decisions.
+
+name: Acceptance Gate Tests
+
+on:
+  workflow_dispatch:
+    # Triggered by gh workflow run from pre-pr-hook.sh
+    # The --ref flag sets which branch to check out and test
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run acceptance gate tests
+        run: npx vitest run --reporter=verbose test/acceptance-gate.test.js
+        timeout-minutes: 40
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
