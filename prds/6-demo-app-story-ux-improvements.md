@@ -74,8 +74,8 @@ Expand Playwright e2e tests to automate story verification for both rounds. Test
 ### M7: Human Verification
 Human reviews story quality and pacing after Playwright tests pass.
 
-- [ ] Human verification of Round 1 (moon/space) story quality and pacing
-- [ ] Human verification of Round 2 (circus) story quality and pacing
+- [x] Human verification of Round 1 (moon/space) story quality and pacing
+- [x] Human verification of Round 2 (circus) story quality and pacing
 
 ### M8: Image Rebuild & Push
 Rebuild and push all 4 container images after verification passes.
@@ -133,6 +133,11 @@ Use `/write-docs` to update documentation reflecting all changes.
 | 2026-03-11 | Round 2 admin labels show model names (Haiku/Opus) | Variant labels were showing "Round 2 Funny" for both — meaningless when both use the same style. Now shows "Round 2 Haiku" and "Round 2 Opus" |
 | 2026-03-11 | Playwright e2e tests before human verification | Automate story delivery, admin panel, voting, and variant coordination checks so human review focuses on subjective quality, not mechanical correctness |
 | 2026-03-11 | Reorder final milestones: Playwright → Human → Images → Docs | Catch mechanical issues with automated tests first, then human reviews quality, then bake verified code into images, then update docs last |
+| 2026-03-11 | Add `forwarded=true` to variant forwarding | Bidirectional VARIANT_URLS caused advance/reset/pre-generate to ping-pong between instances. Adding a forwarded flag prevents re-forwarding loops |
+| 2026-03-11 | Interleave pre-generation across variants part-by-part | Pre-generate part 1 on all variants before part 2, so if interrupted both variants are ready to the same point |
+| 2026-03-11 | Add pre-generate button to admin panel | Backstage prep shouldn't require curl commands — button disables while working and shows progress |
+| 2026-03-11 | Disable admin buttons during requests | Advance button didn't disable during forwarding, allowing double-clicks to skip parts |
+| 2026-03-11 | Reinforce 100-word limit at end of user prompt | Adding "Remember: 100 words maximum" at the end of the user message tightened output without causing word-count leakage |
 
 ## Future Considerations
 

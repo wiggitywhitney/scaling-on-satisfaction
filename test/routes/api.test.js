@@ -850,7 +850,7 @@ describe('API routes', () => {
       const res = await request(app, '/api/admin/advance', { method: 'POST' });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://app-1b:8080/api/admin/advance',
+        'http://app-1b:8080/api/admin/advance?forwarded=true',
         { method: 'POST' }
       );
       expect(res.body.variants).toHaveLength(1);
@@ -871,7 +871,7 @@ describe('API routes', () => {
       const res = await request(app, '/api/admin/reset', { method: 'POST' });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://app-1b:8080/api/admin/reset',
+        'http://app-1b:8080/api/admin/reset?forwarded=true',
         { method: 'POST' }
       );
       expect(res.body.variants).toHaveLength(1);
@@ -891,7 +891,7 @@ describe('API routes', () => {
       await request(app, '/api/admin/advance?secret=test-secret', { method: 'POST' });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://app-1b:8080/api/admin/advance?secret=test-secret',
+        'http://app-1b:8080/api/admin/advance?forwarded=true&secret=test-secret',
         { method: 'POST' }
       );
       config.adminSecret = '';
@@ -953,9 +953,51 @@ describe('API routes', () => {
       await request(app, '/api/admin/advance', { method: 'POST' });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://app-1b:8080/api/admin/advance',
+        'http://app-1b:8080/api/admin/advance?forwarded=true',
         { method: 'POST' }
       );
+    });
+
+    it('forwarded requests do not re-forward to variants', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ currentPart: 1, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+
+      // Advance with forwarded=true (simulates receiving a forwarded request)
+      const res = await request(app, '/api/admin/advance?forwarded=true', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBe(1);
+      // Should NOT have called fetch — forwarded requests skip re-forwarding
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(res.body.variants).toEqual([]);
+    });
+
+    it('forwarded reset does not re-forward to variants', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ currentPart: 0, totalParts: 5 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/advance', { method: 'POST' });
+
+      // Reset clears the fetch mock call count
+      global.fetch.mockClear();
+
+      const res = await request(app, '/api/admin/reset?forwarded=true', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.currentPart).toBe(0);
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(res.body.variants).toEqual([]);
     });
   });
 
@@ -1111,6 +1153,7 @@ describe('API routes', () => {
 
       expect(global.fetch).toHaveBeenCalledTimes(1);
       const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toMatch(/forwarded=true/);
       expect(calledUrl).toMatch(/readyAt=\d+/);
     });
 
@@ -1126,6 +1169,7 @@ describe('API routes', () => {
       await request(app, '/api/admin/advance', { method: 'POST' });
 
       const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toMatch(/forwarded=true/);
       expect(calledUrl).not.toMatch(/readyAt/);
     });
 
@@ -1408,20 +1452,71 @@ describe('API routes', () => {
       expect(res.body.sharedStoryParts).toEqual([1, 2, 3, 4, 5]);
     });
 
-    it('forwards pre-generate to variant URLs', async () => {
+    it('interleaves pre-generation with variants part by part', async () => {
       config.variantUrls = ['http://app-1b:8080'];
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({ generated: 5, totalParts: 5, failed: [] }),
+      const callOrder = [];
+
+      mockGenerator.generatePart = vi.fn().mockImplementation((part) => {
+        callOrder.push(`local:${part}`);
+        return Promise.resolve({
+          text: `Story part ${part}`, responseId: `msg_${part}`,
+          spanContext: { traceId: `t${part}`, spanId: `s${part}`, traceFlags: 1 },
+        });
+      });
+
+      global.fetch = vi.fn().mockImplementation((url) => {
+        const match = url.match(/part=(\d+)/);
+        if (match) callOrder.push(`variant:${match[1]}`);
+        return Promise.resolve({
+          ok: true, status: 200,
+          json: () => Promise.resolve({ generated: 1, totalParts: 5, failed: [] }),
+        });
       });
 
       const app = buildApp(mockGenerator);
       await request(app, '/api/admin/pre-generate', { method: 'POST' });
 
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-      const calledUrl = global.fetch.mock.calls[0][0];
-      expect(calledUrl).toBe('http://app-1b:8080/api/admin/pre-generate');
+      // Verify interleaved order: local part 1, variant part 1, local part 2, variant part 2, etc.
+      expect(callOrder).toEqual([
+        'local:1', 'variant:1',
+        'local:2', 'variant:2',
+        'local:3', 'variant:3',
+        'local:4', 'variant:4',
+        'local:5', 'variant:5',
+      ]);
+    });
+
+    it('pre-generate with part param generates only that part', async () => {
+      mockGenerator.generatePart = vi.fn().mockResolvedValue({
+        text: 'Story part 3', responseId: 'msg_3',
+        spanContext: { traceId: 't3', spanId: 's3', traceFlags: 1 },
+      });
+
+      const app = buildApp(mockGenerator);
+      const res = await request(app, '/api/admin/pre-generate?part=3&forwarded=true', { method: 'POST' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.generated).toBe(1);
+      expect(mockGenerator.generatePart).toHaveBeenCalledTimes(1);
+      expect(mockGenerator.generatePart).toHaveBeenCalledWith(
+        3, config.variantStyle, config.variantModel, config.round
+      );
+      expect(getSharedStory(3)).toBeDefined();
+      // Should not have parts 1, 2, 4, 5
+      expect(getSharedStory(1)).toBeUndefined();
+    });
+
+    it('forwarded pre-generate does not re-forward to variants', async () => {
+      config.variantUrls = ['http://app-1b:8080'];
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true, status: 200,
+        json: () => Promise.resolve({ generated: 1 }),
+      });
+
+      const app = buildApp(mockGenerator);
+      await request(app, '/api/admin/pre-generate?forwarded=true', { method: 'POST' });
+
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 });

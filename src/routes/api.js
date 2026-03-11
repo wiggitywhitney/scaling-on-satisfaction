@@ -244,14 +244,15 @@ export function createApiRouter(generator) {
   return router;
 }
 
-async function forwardToVariants(path, secret, forwardReadyAt) {
+async function forwardToVariants(path, secret, forwardReadyAt, forwardPart) {
   const results = [];
   for (const baseUrl of config.variantUrls) {
     let url = `${baseUrl.replace(/\/$/, '')}/api/admin/${path}`;
-    const params = [];
+    const params = ['forwarded=true'];
     if (secret) params.push(`secret=${encodeURIComponent(secret)}`);
     if (forwardReadyAt) params.push(`readyAt=${forwardReadyAt}`);
-    if (params.length > 0) url += `?${params.join('&')}`;
+    if (forwardPart) params.push(`part=${forwardPart}`);
+    url += `?${params.join('&')}`;
     try {
       const res = await fetch(url, { method: 'POST' });
       const data = await res.json();
@@ -276,8 +277,12 @@ export function createAdminRouter(generator) {
   router.post('/pre-generate', requireSecret, async (req, res) => {
     const failed = [];
     let generated = 0;
+    const forwarded = req.query.forwarded === 'true';
+    const singlePart = req.query.part ? parseInt(req.query.part, 10) : null;
 
-    for (let part = 1; part <= TOTAL_PARTS; part++) {
+    const parts = singlePart ? [singlePart] : Array.from({ length: TOTAL_PARTS }, (_, i) => i + 1);
+
+    for (const part of parts) {
       try {
         const result = await generator.generatePart(
           part, config.variantStyle, config.variantModel, config.round
@@ -289,12 +294,14 @@ export function createAdminRouter(generator) {
         console.error(`Pre-generation failed for part ${part}: ${err.message}`);
         failed.push(part);
       }
+
+      // Interleave: forward each part to variants immediately after generating locally
+      if (!forwarded && !singlePart) {
+        await forwardToVariants(`pre-generate`, req.query.secret, null, part);
+      }
     }
 
-    // Forward to variant URLs
-    const variants = await forwardToVariants('pre-generate', req.query.secret);
-
-    res.json({ generated, totalParts: TOTAL_PARTS, failed, variants });
+    res.json({ generated, totalParts: TOTAL_PARTS, failed, variants: [] });
   });
 
   router.post('/advance', requireSecret, async (req, res) => {
@@ -306,7 +313,8 @@ export function createAdminRouter(generator) {
     readyAt = providedReadyAt || 0;
 
     currentPart++;
-    const variants = await forwardToVariants('advance', req.query.secret, readyAt);
+    const forwarded = req.query.forwarded === 'true';
+    const variants = forwarded ? [] : await forwardToVariants('advance', req.query.secret, readyAt);
     res.json({ currentPart, totalParts: TOTAL_PARTS, readyAt, variants });
   });
 
@@ -315,7 +323,8 @@ export function createAdminRouter(generator) {
     readyAt = 0;
     sharedStory.clear();
     inFlightGenerations.clear();
-    const variants = await forwardToVariants('reset', req.query.secret);
+    const forwarded = req.query.forwarded === 'true';
+    const variants = forwarded ? [] : await forwardToVariants('reset', req.query.secret);
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
 

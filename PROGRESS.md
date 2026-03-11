@@ -44,3 +44,14 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Pre-generation e2e test
 - Strengthened 100-word prompt limit with rejection language and word count leak prevention
 - Existing e2e tests updated for 2-instance shared-story stateless architecture
+- (2026-03-11) Pre-generate button in admin panel with disable-while-working UX
+- (2026-03-11) Interleaved pre-generation across variants (both variants get part N before part N+1)
+- (2026-03-11) E2E test for advance-without-skipping with bidirectional VARIANT_URLS
+- (2026-03-11) E2E test for admin pre-generate button
+- (2026-03-11) Human verification of Round 1 and Round 2 story quality approved
+
+### Fixed
+- (2026-03-11) Advance/reset/pre-generate forwarding loop when both instances have VARIANT_URLS pointing at each other
+- (2026-03-11) Advance button double-click race allowing part skips
+- (2026-03-11) E2E test runner now sets VARIANT_URLS on both instances to mirror real deployment
+- (2026-03-11) Story word counts tightened with end-of-prompt reinforcement

@@ -52,6 +52,16 @@
       color: #ccc;
     }
     .btn-reset:hover { background: #555; }
+    .btn-pregen {
+      background: #2c3e50;
+      color: #3498db;
+    }
+    .btn-pregen:hover { background: #34495e; }
+    .btn-pregen:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
     .info {
       margin-top: 24px;
       font-size: 13px;
@@ -124,6 +134,7 @@
   <div class="status" id="status">0 / 5</div>
   <div class="status-label">current part</div>
   <div class="sync-status hidden" id="sync-status"></div>
+  <button class="btn-pregen" id="btn-pregen">Pre-generate All Parts</button>
   <button class="btn-advance" id="btn-advance">Advance to Next Part</button>
   <button class="btn-reset" id="btn-reset">Reset</button>
   <div class="info" id="info"></div>
@@ -131,6 +142,7 @@
 
   <script>
     const status = document.getElementById('status');
+    const btnPregen = document.getElementById('btn-pregen');
     const btnAdvance = document.getElementById('btn-advance');
     const btnReset = document.getElementById('btn-reset');
     const info = document.getElementById('info');
@@ -228,22 +240,33 @@
       return d.innerHTML;
     }
 
-    btnAdvance.addEventListener('click', async () => {
-      const res = await fetch(`/api/admin/advance${secretQuery}`, { method: 'POST' });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        info.textContent = body.error || `Error: ${res.status}`;
-        info.style.color = '#e74c3c';
-        return;
-      }
+    btnPregen.addEventListener('click', async () => {
+      btnPregen.disabled = true;
+      btnPregen.textContent = 'Pre-generating...';
       info.style.color = '';
-      refresh();
-      refreshVariants();
+      try {
+        const res = await fetch(`/api/admin/pre-generate${secretQuery}`, { method: 'POST' });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          info.textContent = body.error || `Error: ${res.status}`;
+          info.style.color = '#e74c3c';
+          return;
+        }
+        refresh();
+        refreshVariants();
+      } catch (err) {
+        info.textContent = `Pre-generation failed: ${err.message}`;
+        info.style.color = '#e74c3c';
+      } finally {
+        btnPregen.disabled = false;
+        btnPregen.textContent = 'Pre-generate All Parts';
+      }
     });
 
-    btnReset.addEventListener('click', async () => {
-      if (confirm('Reset story? Pre-generated stories will be cleared.')) {
-        const res = await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
+    btnAdvance.addEventListener('click', async () => {
+      btnAdvance.disabled = true;
+      try {
+        const res = await fetch(`/api/admin/advance${secretQuery}`, { method: 'POST' });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           info.textContent = body.error || `Error: ${res.status}`;
@@ -251,8 +274,32 @@
           return;
         }
         info.style.color = '';
-        refresh();
+        await refresh();
         refreshVariants();
+      } finally {
+        // refresh() updates disabled state based on currentPart >= totalParts
+        // Only re-enable if refresh hasn't already disabled it (at last part)
+        if (mainCurrentPart < 5) btnAdvance.disabled = false;
+      }
+    });
+
+    btnReset.addEventListener('click', async () => {
+      if (confirm('Reset story? Pre-generated stories will be cleared.')) {
+        btnReset.disabled = true;
+        try {
+          const res = await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            info.textContent = body.error || `Error: ${res.status}`;
+            info.style.color = '#e74c3c';
+            return;
+          }
+          info.style.color = '';
+          await refresh();
+          refreshVariants();
+        } finally {
+          btnReset.disabled = false;
+        }
       }
     });
 

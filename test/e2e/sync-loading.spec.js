@@ -67,6 +67,24 @@ test.describe('Synchronized Variant Loading', () => {
     expect(variantAfter.currentPart).toBe(1);
   });
 
+  test('advance increments one part at a time without skipping (no forwarding loop)', async () => {
+    // This verifies the fix for a bug where bidirectional VARIANT_URLS caused
+    // advance to ping-pong between instances, jumping from 0 to 5 in one click
+    for (let expected = 1; expected <= 5; expected++) {
+      await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
+
+      const coordStatus = await fetch(`${COORDINATOR}/api/admin/status`).then(r => r.json());
+      const variantStatus = await fetch(`${VARIANT}/api/admin/status`).then(r => r.json());
+
+      expect(coordStatus.currentPart).toBe(expected);
+      expect(variantStatus.currentPart).toBe(expected);
+    }
+
+    // One more advance should fail — we're at the end
+    const res = await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
+    expect(res.status).toBe(400);
+  });
+
   test('coordinator audience sees story after advance', async ({ page }) => {
     await fetch(`${COORDINATOR}/api/admin/advance`, { method: 'POST' });
 

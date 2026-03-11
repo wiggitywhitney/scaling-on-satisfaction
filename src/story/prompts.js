@@ -190,6 +190,8 @@ export function buildPrompt(partNumber, style, round = 1) {
 
   userParts.push(`## Part ${partNumber} of ${TOTAL_PARTS}: ${beat.title}\n\n${beat.instructions}`);
 
+  userParts.push(`Remember: 100 words maximum. No meta-commentary about length.`);
+
   const user = userParts.join('\n\n');
 
   return { system, user };

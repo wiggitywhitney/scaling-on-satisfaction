@@ -57,6 +57,28 @@ test.describe('Story Pre-generation', () => {
     expect(status.sharedStoryParts).toEqual([1, 2, 3, 4, 5]);
   });
 
+  test('admin panel has a pre-generate button that generates all parts', async ({ page }) => {
+    await page.goto(`${COORDINATOR}/admin`);
+
+    // Button should exist and be enabled
+    const btn = page.locator('#btn-pregen');
+    await expect(btn).toBeVisible({ timeout: 5000 });
+    await expect(btn).toBeEnabled();
+
+    // Info should show 0 parts pre-generated initially
+    await expect(page.locator('#info')).toContainText('0 / 5 parts pre-generated', { timeout: 5000 });
+
+    // Click pre-generate — button should disable while working
+    await btn.click();
+    await expect(btn).toBeDisabled();
+
+    // Wait for completion — info should show 5/5 parts
+    await expect(page.locator('#info')).toContainText('5 / 5 parts pre-generated', { timeout: 120000 });
+
+    // Button should re-enable after completion
+    await expect(btn).toBeEnabled({ timeout: 5000 });
+  });
+
   test('pre-generated stories serve instantly without generation delay', async ({ page }) => {
     // Pre-generate all parts first
     await fetch(`${VARIANT}/api/admin/pre-generate`, { method: 'POST' });

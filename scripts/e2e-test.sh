@@ -83,6 +83,7 @@ run_round() {
   PORT=8081 \
   VARIANT_STYLE="$variant_style" \
   VARIANT_MODEL="$variant_model" \
+  VARIANT_URLS="http://localhost:8080" \
   PREGEN_DELAY_MS=500 \
   node src/index.js &
   CLEANUP_PIDS+=($!)
