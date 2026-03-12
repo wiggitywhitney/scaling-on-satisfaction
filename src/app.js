@@ -1,7 +1,6 @@
 // ABOUTME: Express app factory with static file serving, API routes, and admin routes
 // ABOUTME: Provides createApp() returning the configured app and shutdown handler
 import express from 'express';
-import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createApiRouter, createAdminRouter } from './routes/api.js';
@@ -13,7 +12,6 @@ export function createApp(generator) {
   const app = express();
   const state = { shuttingDown: false };
 
-  app.use(cookieParser());
   app.use(express.static(join(__dirname, 'public')));
   app.use(express.json());
 
@@ -32,7 +30,7 @@ export function createApp(generator) {
   });
 
   app.use('/api', createApiRouter(generator));
-  app.use('/api/admin', createAdminRouter());
+  app.use('/api/admin', createAdminRouter(generator));
   app.get('/admin', (req, res) => {
     res.sendFile(join(__dirname, 'public', 'admin.html'));
   });

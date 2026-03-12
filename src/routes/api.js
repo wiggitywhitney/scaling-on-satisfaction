@@ -1,43 +1,117 @@
-// ABOUTME: API routes for story delivery, voting, and presenter admin controls
-// ABOUTME: Handles story generation, OTel vote events, and multi-variant advancement
+// ABOUTME: Stateless API routes for story delivery, voting, and presenter admin controls
+// ABOUTME: Serves shared pre-generated stories, accepts vote context from clients
 import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import { TOTAL_PARTS } from '../story/prompts.js';
 import config from '../config.js';
 import { emitEvaluationEvent } from '../telemetry.js';
 
-const sessions = new Map();
+const MODEL_DISPLAY_NAMES = {
+  'claude-haiku-4-5-20251001': 'Haiku',
+  'claude-sonnet-4-20250514': 'Sonnet',
+  'claude-opus-4-6': 'Opus',
+};
+
+function variantLabel(data, fallbackUrl) {
+  if (!data.round) return fallbackUrl || 'Unknown';
+  if (data.round === 2 && data.model) {
+    const modelName = MODEL_DISPLAY_NAMES[data.model] || data.model;
+    return `Round ${data.round} ${modelName}`;
+  }
+  const style = data.style ? data.style.charAt(0).toUpperCase() + data.style.slice(1) : 'Unknown';
+  return `Round ${data.round} ${style}`;
+}
+
+const sharedStory = new Map();
+const inFlightGenerations = new Map();
 let currentPart = 0;
+let readyAt = 0;
+let generationEpoch = 0;
 
 export function getCurrentPart() {
   return currentPart;
 }
 
-export function resetState() {
-  sessions.clear();
-  currentPart = 0;
+export function getSharedStory(partNumber) {
+  return sharedStory.get(partNumber);
 }
 
-function getSession(req, res) {
-  let sessionId = req.cookies.sessionId;
-  if (!sessionId || !sessions.has(sessionId)) {
-    sessionId = uuidv4();
-    res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'lax' });
-    sessions.set(sessionId, { parts: {} });
-  }
-  return { sessionId, session: sessions.get(sessionId) };
+export function resetState() {
+  sharedStory.clear();
+  inFlightGenerations.clear();
+  currentPart = 0;
+  readyAt = 0;
+  generationEpoch++;
+}
+
+function createDeferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
+function isReady() {
+  return readyAt === 0 || Date.now() >= readyAt;
 }
 
 export function createApiRouter(generator) {
   const router = Router();
 
+  router.post('/story/warmup', (req, res) => {
+    res.json({ warming: true });
+
+    // Eagerly generate part 1 in the background after stagger delay (skip if shared story exists)
+    if (!sharedStory.has(1) && !inFlightGenerations.has(1)) {
+      const delay = config.pregenDelayMs;
+      const epoch = generationEpoch;
+      // Reserve slot with a deferred promise so concurrent requests can await it
+      const deferred = createDeferred();
+      inFlightGenerations.set(1, deferred.promise);
+      const generate = () => {
+        if (sharedStory.has(1) || epoch !== generationEpoch) {
+          inFlightGenerations.delete(1);
+          deferred.reject(new Error('Generation cancelled'));
+          return;
+        }
+        generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
+          .then(result => {
+            if (epoch === generationEpoch && !sharedStory.has(1)) {
+              sharedStory.set(1, result);
+            }
+            inFlightGenerations.delete(1);
+            deferred.resolve(result);
+          })
+          .catch(err => {
+            console.error(`Pre-generation failed for part 1 (warmup): ${err.message}`);
+            // Retry once after delay
+            setTimeout(() => {
+              generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
+                .then(result => {
+                  if (epoch === generationEpoch && !sharedStory.has(1)) {
+                    sharedStory.set(1, result);
+                  }
+                  inFlightGenerations.delete(1);
+                  deferred.resolve(result);
+                })
+                .catch(retryErr => {
+                  console.error(`Pre-generation retry failed for part 1 (warmup): ${retryErr.message}`);
+                  inFlightGenerations.delete(1);
+                  deferred.reject(retryErr);
+                });
+            }, config.pregenRetryDelayMs);
+          });
+      };
+
+      if (delay > 0) {
+        setTimeout(generate, delay);
+      } else {
+        generate();
+      }
+    }
+  });
+
   router.get('/story/status', (req, res) => {
-    const sessionId = req.cookies.sessionId;
-    const session = sessionId ? sessions.get(sessionId) : null;
-    const generatedParts = session
-      ? Object.keys(session.parts).map(Number).sort((a, b) => a - b)
-      : [];
-    res.json({ totalParts: TOTAL_PARTS, generatedParts, currentPart });
+    const sharedStoryParts = [...sharedStory.keys()].sort((a, b) => a - b);
+    res.json({ totalParts: TOTAL_PARTS, sharedStoryParts, currentPart, ready: isReady() });
   });
 
   router.get('/story/:part', async (req, res) => {
@@ -55,25 +129,44 @@ export function createApiRouter(generator) {
       return res.status(403).json({ error: 'This part is not available yet', currentPart });
     }
 
-    const { session } = getSession(req, res);
-
-    if (session.parts[partNumber]) {
+    // Serve from shared pre-generated store
+    const shared = sharedStory.get(partNumber);
+    if (shared) {
       return res.json({
         part: partNumber,
         totalParts: TOTAL_PARTS,
-        text: session.parts[partNumber].text,
-        vote: session.parts[partNumber].vote || null,
+        text: shared.text,
+        responseId: shared.responseId,
+        spanContext: shared.spanContext || null,
       });
     }
 
+    // Fallback: generate on demand with in-flight deduplication
+    const epoch = generationEpoch;
     try {
+      let resultPromise = inFlightGenerations.get(partNumber);
+      if (!resultPromise) {
+        resultPromise = generator.generatePart(
+          partNumber,
+          config.variantStyle,
+          config.variantModel,
+          config.round
+        );
+        inFlightGenerations.set(partNumber, resultPromise);
+        resultPromise.catch(() => {}).finally(() => {
+          if (inFlightGenerations.get(partNumber) === resultPromise) {
+            inFlightGenerations.delete(partNumber);
+          }
+        });
+      }
+
       const genStart = Date.now();
-      const result = await generator.generatePart(
-        partNumber,
-        config.variantStyle,
-        config.variantModel,
-        config.round
-      );
+      const result = await resultPromise;
+
+      // Store in shared store so all users get the same story (skip if reset occurred mid-generation)
+      if (!sharedStory.has(partNumber) && epoch === generationEpoch) {
+        sharedStory.set(partNumber, result);
+      }
 
       if (config.minGenerationDelayMs > 0) {
         const elapsed = Date.now() - genStart;
@@ -83,14 +176,62 @@ export function createApiRouter(generator) {
         }
       }
 
-      session.parts[partNumber] = result;
-
       res.json({
         part: partNumber,
         totalParts: TOTAL_PARTS,
         text: result.text,
-        vote: session.parts[partNumber].vote || null,
+        responseId: result.responseId,
+        spanContext: result.spanContext || null,
       });
+
+      // Eagerly pre-generate the next part in the background after stagger delay
+      const nextPart = partNumber + 1;
+      if (nextPart <= TOTAL_PARTS && !sharedStory.has(nextPart) && !inFlightGenerations.has(nextPart)) {
+        const epoch = generationEpoch;
+        // Reserve slot with a deferred promise so concurrent requests can await it
+        const deferred = createDeferred();
+        inFlightGenerations.set(nextPart, deferred.promise);
+        const generate = () => {
+          if (sharedStory.has(nextPart) || epoch !== generationEpoch) {
+            inFlightGenerations.delete(nextPart);
+            deferred.reject(new Error('Generation cancelled'));
+            return;
+          }
+          generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
+            .then(nextResult => {
+              if (epoch === generationEpoch && !sharedStory.has(nextPart)) {
+                sharedStory.set(nextPart, nextResult);
+              }
+              inFlightGenerations.delete(nextPart);
+              deferred.resolve(nextResult);
+            })
+            .catch(err => {
+              console.error(`Pre-generation failed for part ${nextPart}: ${err.message}`);
+              // Retry once after delay
+              setTimeout(() => {
+                generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
+                  .then(nextResult => {
+                    if (epoch === generationEpoch && !sharedStory.has(nextPart)) {
+                      sharedStory.set(nextPart, nextResult);
+                    }
+                    inFlightGenerations.delete(nextPart);
+                    deferred.resolve(nextResult);
+                  })
+                  .catch(retryErr => {
+                    console.error(`Pre-generation retry failed for part ${nextPart}: ${retryErr.message}`);
+                    inFlightGenerations.delete(nextPart);
+                    deferred.reject(retryErr);
+                  });
+              }, config.pregenRetryDelayMs);
+            });
+        };
+
+        if (config.pregenDelayMs > 0) {
+          setTimeout(generate, config.pregenDelayMs);
+        } else {
+          generate();
+        }
+      }
     } catch (err) {
       res.status(500).json({ error: `Failed to generate story part: ${err.message}` });
     }
@@ -113,47 +254,42 @@ export function createApiRouter(generator) {
       return res.status(403).json({ error: 'This part is not available yet', currentPart });
     }
 
-    const { vote } = req.body || {};
+    const { vote, responseId, spanContext } = req.body || {};
 
     if (!vote || !VALID_VOTES.includes(vote)) {
       return res.status(400).json({ error: 'Vote must be thumbs_up or thumbs_down' });
     }
 
-    const { session } = getSession(req, res);
-
-    if (!session.parts[partNumber]) {
-      return res.status(400).json({ error: 'Part not generated for this session' });
+    if (!responseId) {
+      return res.status(400).json({ error: 'responseId is required' });
     }
-
-    if (session.parts[partNumber].vote) {
-      return res.status(409).json({ error: 'Already voted on this part' });
-    }
-
-    session.parts[partNumber].vote = vote;
 
     emitEvaluationEvent({
       vote,
-      responseId: session.parts[partNumber].responseId,
-      generationSpanContext: session.parts[partNumber].spanContext || null,
+      responseId,
+      generationSpanContext: spanContext || null,
+      partNumber,
     });
 
     res.json({
       part: partNumber,
       vote,
-      responseId: session.parts[partNumber].responseId,
+      responseId,
     });
   });
 
   return router;
 }
 
-async function forwardToVariants(path, secret) {
+async function forwardToVariants(path, secret, forwardReadyAt, forwardPart) {
   const results = [];
   for (const baseUrl of config.variantUrls) {
     let url = `${baseUrl.replace(/\/$/, '')}/api/admin/${path}`;
-    if (secret) {
-      url += `?secret=${encodeURIComponent(secret)}`;
-    }
+    const params = ['forwarded=true'];
+    if (secret) params.push(`secret=${encodeURIComponent(secret)}`);
+    if (forwardReadyAt) params.push(`readyAt=${forwardReadyAt}`);
+    if (forwardPart) params.push(`part=${forwardPart}`);
+    url += `?${params.join('&')}`;
     try {
       const res = await fetch(url, { method: 'POST' });
       const data = await res.json();
@@ -172,22 +308,63 @@ function requireSecret(req, res, next) {
   return res.status(401).json({ error: 'Unauthorized' });
 }
 
-export function createAdminRouter() {
+export function createAdminRouter(generator) {
   const router = Router();
+
+  router.post('/pre-generate', requireSecret, async (req, res) => {
+    const failed = [];
+    let generated = 0;
+    const forwarded = req.query.forwarded === 'true';
+    let singlePart = null;
+    if (req.query.part != null) {
+      singlePart = parseInt(req.query.part, 10);
+      if (isNaN(singlePart) || singlePart < 1 || singlePart > TOTAL_PARTS) {
+        return res.status(400).json({ error: `Invalid part: ${req.query.part}. Valid range: 1-${TOTAL_PARTS}` });
+      }
+    }
+
+    const parts = singlePart ? [singlePart] : Array.from({ length: TOTAL_PARTS }, (_, i) => i + 1);
+
+    for (const part of parts) {
+      try {
+        const result = await generator.generatePart(
+          part, config.variantStyle, config.variantModel, config.round
+        );
+        sharedStory.set(part, result);
+        generated++;
+        console.log(`Pre-generated part ${part}/${TOTAL_PARTS}`); // eslint-disable-line no-console
+      } catch (err) {
+        console.error(`Pre-generation failed for part ${part}: ${err.message}`);
+        failed.push(part);
+      }
+
+      // Interleave: forward each part to variants immediately after generating locally
+      if (!forwarded && !singlePart) {
+        await forwardToVariants(`pre-generate`, req.query.secret, null, part);
+      }
+    }
+
+    res.json({ generated, totalParts: TOTAL_PARTS, failed, variants: [] });
+  });
 
   router.post('/advance', requireSecret, async (req, res) => {
     if (currentPart >= TOTAL_PARTS) {
       return res.status(400).json({ error: 'Already at the last part', currentPart });
     }
+
+    const providedReadyAt = req.query.readyAt ? parseInt(req.query.readyAt, 10) : null;
+    readyAt = providedReadyAt || 0;
+
     currentPart++;
-    const variants = await forwardToVariants('advance', req.query.secret);
-    res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
+    const forwarded = req.query.forwarded === 'true';
+    const variants = forwarded ? [] : await forwardToVariants('advance', req.query.secret, readyAt);
+    res.json({ currentPart, totalParts: TOTAL_PARTS, readyAt, variants });
   });
 
   router.post('/reset', requireSecret, async (req, res) => {
-    currentPart = 0;
-    sessions.clear();
-    const variants = await forwardToVariants('reset', req.query.secret);
+    resetState();
+    const forwarded = req.query.forwarded === 'true';
+    const variants = forwarded ? [] : await forwardToVariants('reset', req.query.secret);
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
   });
 
@@ -195,9 +372,12 @@ export function createAdminRouter() {
     res.json({
       currentPart,
       totalParts: TOTAL_PARTS,
-      sessions: sessions.size,
       style: config.variantStyle,
+      model: config.variantModel,
       round: config.round,
+      ready: isReady(),
+      readyAt,
+      sharedStoryParts: [...sharedStory.keys()].sort((a, b) => a - b),
     });
   });
 
@@ -213,8 +393,7 @@ export function createAdminRouter() {
           throw new Error(`status ${fetchRes.status}`);
         }
         const data = await fetchRes.json();
-        const label = explicitLabel
-          || (data.style ? `Round ${data.round} ${data.style.charAt(0).toUpperCase() + data.style.slice(1)}` : baseUrl);
+        const label = explicitLabel || variantLabel(data, baseUrl);
         variants.push({ url: baseUrl, label, ok: true, ...data });
       } catch (err) {
         const label = explicitLabel || baseUrl;

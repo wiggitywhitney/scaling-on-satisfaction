@@ -122,4 +122,42 @@ describe('config', () => {
     const { default: config } = await import('../src/config.js?' + Date.now());
     expect(config.minGenerationDelayMs).toBe(3000);
   });
+
+  it('defaults pregenDelayMs to 2000', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.pregenDelayMs).toBe(2000);
+  });
+
+  it('reads PREGEN_DELAY_MS from environment', async () => {
+    process.env.PREGEN_DELAY_MS = '3000';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.pregenDelayMs).toBe(3000);
+  });
+
+  it('defaults pregenRetryDelayMs to 5000', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.pregenRetryDelayMs).toBe(5000);
+  });
+
+  it('reads PREGEN_RETRY_DELAY_MS from environment', async () => {
+    process.env.PREGEN_RETRY_DELAY_MS = '10000';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const { default: config } = await import('../src/config.js?' + Date.now());
+    expect(config.pregenRetryDelayMs).toBe(10000);
+  });
+
+  it('throws on invalid PREGEN_DELAY_MS value', async () => {
+    process.env.PREGEN_DELAY_MS = '2s';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    await expect(import('../src/config.js?' + Date.now())).rejects.toThrow('Invalid PREGEN_DELAY_MS');
+  });
+
+  it('throws on negative PREGEN_RETRY_DELAY_MS value', async () => {
+    process.env.PREGEN_RETRY_DELAY_MS = '-100';
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    await expect(import('../src/config.js?' + Date.now())).rejects.toThrow('Invalid PREGEN_RETRY_DELAY_MS');
+  });
 });

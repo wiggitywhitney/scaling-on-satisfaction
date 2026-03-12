@@ -52,6 +52,16 @@
       color: #ccc;
     }
     .btn-reset:hover { background: #555; }
+    .btn-pregen {
+      background: #2c3e50;
+      color: #3498db;
+    }
+    .btn-pregen:hover { background: #34495e; }
+    .btn-pregen:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
     .info {
       margin-top: 24px;
       font-size: 13px;
@@ -98,12 +108,33 @@
     .variant-sync { color: #2ecc71; }
     .variant-lag { color: #f1c40f; }
     .variant-err { color: #e74c3c; }
+    .sync-status {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .sync-status.preparing {
+      background: #3a3520;
+      color: #f1c40f;
+    }
+    .sync-status.ready {
+      background: #1a3a1a;
+      color: #2ecc71;
+    }
+    .sync-status.hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Presenter Controls</h1>
   <div class="status" id="status">0 / 5</div>
   <div class="status-label">current part</div>
+  <div class="sync-status hidden" id="sync-status"></div>
+  <button class="btn-pregen" id="btn-pregen">Pre-generate All Parts</button>
   <button class="btn-advance" id="btn-advance">Advance to Next Part</button>
   <button class="btn-reset" id="btn-reset">Reset</button>
   <div class="info" id="info"></div>
@@ -111,10 +142,12 @@
 
   <script>
     const status = document.getElementById('status');
+    const btnPregen = document.getElementById('btn-pregen');
     const btnAdvance = document.getElementById('btn-advance');
     const btnReset = document.getElementById('btn-reset');
     const info = document.getElementById('info');
     const variantsEl = document.getElementById('variants');
+    const syncStatusEl = document.getElementById('sync-status');
 
     let mainCurrentPart = 0;
     let mainStatus = null;
@@ -131,13 +164,33 @@
         mainStatus = data;
         status.textContent = `${data.currentPart} / ${data.totalParts}`;
         btnAdvance.disabled = data.currentPart >= data.totalParts;
-        info.textContent = `${data.sessions} active session${data.sessions !== 1 ? 's' : ''}`;
+        info.textContent = `${data.sharedStoryParts.length} / ${data.totalParts} parts pre-generated`;
+        if (data.readyAt && !data.ready) {
+          const remaining = Math.max(0, Math.ceil((data.readyAt - Date.now()) / 1000));
+          syncStatusEl.textContent = `Preparing... ${remaining}s`;
+          syncStatusEl.className = 'sync-status preparing';
+        } else if (data.currentPart > 0) {
+          syncStatusEl.textContent = 'Ready';
+          syncStatusEl.className = 'sync-status ready';
+        } else {
+          syncStatusEl.className = 'sync-status hidden';
+        }
       } catch {
         info.textContent = 'Status unavailable';
       }
     }
 
-    function formatLabel(style, round) {
+    const MODEL_DISPLAY_NAMES = {
+      'claude-haiku-4-5-20251001': 'Haiku',
+      'claude-sonnet-4-20250514': 'Sonnet',
+      'claude-opus-4-6': 'Opus',
+    };
+
+    function formatLabel(style, round, model) {
+      if (round === 2 && model) {
+        const modelName = MODEL_DISPLAY_NAMES[model] || model;
+        return `Round ${round} ${modelName}`;
+      }
       const s = style ? style.charAt(0).toUpperCase() + style.slice(1) : 'Unknown';
       return `Round ${round} ${s}`;
     }
@@ -155,11 +208,11 @@
         const allVariants = [];
         if (mainStatus) {
           allVariants.push({
-            label: formatLabel(mainStatus.style, mainStatus.round) + ' (this instance)',
+            label: formatLabel(mainStatus.style, mainStatus.round, mainStatus.model) + ' (this instance)',
             ok: true,
             currentPart: mainStatus.currentPart,
             totalParts: mainStatus.totalParts,
-            sessions: mainStatus.sessions,
+            sharedStoryParts: mainStatus.sharedStoryParts,
           });
         }
         allVariants.push(...data.variants);
@@ -172,7 +225,7 @@
           }
           const syncClass = v.currentPart === mainCurrentPart ? 'variant-sync' : 'variant-lag';
           return `<div class="variant-card">
-            <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">${v.sessions} session${v.sessions !== 1 ? 's' : ''}</div></div>
+            <div><div class="variant-label">${esc(v.label)}</div><div class="variant-detail">${(v.sharedStoryParts || []).length} / ${v.totalParts} parts</div></div>
             <div class="variant-part ${syncClass}">${v.currentPart} / ${v.totalParts}</div>
           </div>`;
         }).join('');
@@ -187,22 +240,33 @@
       return d.innerHTML;
     }
 
-    btnAdvance.addEventListener('click', async () => {
-      const res = await fetch(`/api/admin/advance${secretQuery}`, { method: 'POST' });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        info.textContent = body.error || `Error: ${res.status}`;
-        info.style.color = '#e74c3c';
-        return;
-      }
+    btnPregen.addEventListener('click', async () => {
+      btnPregen.disabled = true;
+      btnPregen.textContent = 'Pre-generating...';
       info.style.color = '';
-      refresh();
-      refreshVariants();
+      try {
+        const res = await fetch(`/api/admin/pre-generate${secretQuery}`, { method: 'POST' });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          info.textContent = body.error || `Error: ${res.status}`;
+          info.style.color = '#e74c3c';
+          return;
+        }
+        await refresh();
+        await refreshVariants();
+      } catch (err) {
+        info.textContent = `Pre-generation failed: ${err.message}`;
+        info.style.color = '#e74c3c';
+      } finally {
+        btnPregen.disabled = false;
+        btnPregen.textContent = 'Pre-generate All Parts';
+      }
     });
 
-    btnReset.addEventListener('click', async () => {
-      if (confirm('Reset story? All audience sessions will be cleared.')) {
-        const res = await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
+    btnAdvance.addEventListener('click', async () => {
+      btnAdvance.disabled = true;
+      try {
+        const res = await fetch(`/api/admin/advance${secretQuery}`, { method: 'POST' });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           info.textContent = body.error || `Error: ${res.status}`;
@@ -210,8 +274,32 @@
           return;
         }
         info.style.color = '';
-        refresh();
+        await refresh();
         refreshVariants();
+      } finally {
+        // refresh() updates disabled state based on currentPart >= totalParts
+        // Only re-enable if refresh hasn't already disabled it (at last part)
+        if (mainStatus && mainCurrentPart < mainStatus.totalParts) btnAdvance.disabled = false;
+      }
+    });
+
+    btnReset.addEventListener('click', async () => {
+      if (confirm('Reset story? Pre-generated stories will be cleared.')) {
+        btnReset.disabled = true;
+        try {
+          const res = await fetch(`/api/admin/reset${secretQuery}`, { method: 'POST' });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            info.textContent = body.error || `Error: ${res.status}`;
+            info.style.color = '#e74c3c';
+            return;
+          }
+          info.style.color = '';
+          await refresh();
+          refreshVariants();
+        } finally {
+          btnReset.disabled = false;
+        }
       }
     });
 

@@ -75,6 +75,39 @@ describe('generator', () => {
     expect(result.responseId).toBe('msg_abc123');
   });
 
+  it('strips leaked word count from story text', async () => {
+    mockClient.messages.create.mockResolvedValue({
+      id: 'msg_wc1',
+      content: [{ type: 'text', text: 'The clock didn\'t care. Neither did the water.\n\n**Word count: 100**' }],
+    });
+
+    const result = await generator.generatePart(1, 'funny', 'claude-sonnet-4-20250514');
+
+    expect(result.text).toBe('The clock didn\'t care. Neither did the water.');
+  });
+
+  it('strips unbolded word count from story text', async () => {
+    mockClient.messages.create.mockResolvedValue({
+      id: 'msg_wc2',
+      content: [{ type: 'text', text: 'Story ending here.\n\nWord count: 98' }],
+    });
+
+    const result = await generator.generatePart(1, 'funny', 'claude-sonnet-4-20250514');
+
+    expect(result.text).toBe('Story ending here.');
+  });
+
+  it('does not modify text without word count leak', async () => {
+    mockClient.messages.create.mockResolvedValue({
+      id: 'msg_clean',
+      content: [{ type: 'text', text: 'A perfectly clean story.' }],
+    });
+
+    const result = await generator.generatePart(1, 'funny', 'claude-sonnet-4-20250514');
+
+    expect(result.text).toBe('A perfectly clean story.');
+  });
+
   it('throws on API error without fallback', async () => {
     mockClient.messages.create.mockRejectedValue(new Error('API rate limit exceeded'));
 

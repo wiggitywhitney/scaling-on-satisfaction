@@ -5,11 +5,14 @@ import { createPollController } from './poll.js';
 const POLL_INTERVAL_MS = 2000;
 
 let voteLocked = false;
+let currentResponseId = null;
+let currentSpanContext = null;
 
 const welcome = document.getElementById('welcome');
 const story = document.getElementById('story');
 const storyText = document.getElementById('story-text');
 const loading = document.getElementById('loading');
+const preparing = document.getElementById('preparing');
 const waiting = document.getElementById('waiting');
 const progress = document.getElementById('progress');
 const voteButtons = document.getElementById('vote-buttons');
@@ -48,7 +51,7 @@ async function submitVote(vote) {
     const res = await fetch(`/api/story/${currentDisplayedPart}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vote }),
+      body: JSON.stringify({ vote, responseId: currentResponseId, spanContext: currentSpanContext }),
     });
     if (!res.ok) return;
 
@@ -66,6 +69,7 @@ voteBtns.forEach((btn) => {
 
 function showWaitingForNext() {
   loading.classList.remove('active');
+  preparing.classList.remove('active');
   storyText.classList.remove('visible');
   waiting.classList.add('active');
   hideVoteButtons();
@@ -86,26 +90,56 @@ const controller = createPollController({
     welcome.classList.add('hidden');
     story.classList.add('active');
     waiting.classList.remove('active');
+    preparing.classList.remove('active');
     storyText.classList.remove('visible');
     loading.classList.add('active');
+    hideVoteButtons();
+  },
+  onWaitingForReady: () => {
+    welcome.classList.add('hidden');
+    story.classList.add('active');
+    loading.classList.remove('active');
+    waiting.classList.remove('active');
+    storyText.classList.remove('visible');
+    preparing.classList.add('active');
     hideVoteButtons();
   },
   onPart: (data) => {
     welcome.classList.add('hidden');
     story.classList.add('active');
     loading.classList.remove('active');
+    preparing.classList.remove('active');
     waiting.classList.remove('active');
     storyText.textContent = data.text;
     storyText.classList.add('visible');
     progress.textContent = `Part ${data.part} of ${data.totalParts}`;
     currentDisplayedPart = data.part;
-    showVoteButtons(data.vote);
+    currentResponseId = data.responseId || null;
+    currentSpanContext = data.spanContext || null;
+    showVoteButtons(null);
   },
   onError: (err) => {
     loading.classList.remove('active');
     storyText.textContent = `Error loading story: ${err.message}`;
     storyText.classList.add('visible');
   },
+  onReset: () => {
+    story.classList.remove('active');
+    loading.classList.remove('active');
+    preparing.classList.remove('active');
+    waiting.classList.remove('active');
+    storyText.classList.remove('visible');
+    storyText.textContent = '';
+    progress.textContent = '';
+    welcome.classList.remove('hidden');
+    currentDisplayedPart = 0;
+    currentResponseId = null;
+    currentSpanContext = null;
+    hideVoteButtons();
+  },
 });
+
+// Eagerly pre-generate Part 1 so it's cached before admin advances
+fetch('/api/story/warmup', { method: 'POST' }).catch(() => {});
 
 setInterval(() => controller.poll(), POLL_INTERVAL_MS);

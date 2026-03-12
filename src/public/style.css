@@ -98,6 +98,17 @@ main {
   display: block;
 }
 
+.preparing {
+  display: none;
+  text-align: center;
+  padding: 48px 0;
+  color: #999;
+}
+
+.preparing.active {
+  display: block;
+}
+
 .waiting {
   display: none;
   text-align: center;

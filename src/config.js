@@ -1,5 +1,14 @@
 // ABOUTME: App configuration loaded from environment variables
 // ABOUTME: Covers port, round, variant style/model, API keys, and admin settings
+function parseNonNegativeInt(name, defaultValue) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return defaultValue;
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`Invalid ${name}: "${raw}" — must be a non-negative integer`);
+  }
+  return parseInt(raw, 10);
+}
+
 function loadConfig() {
   const variantUrls = process.env.VARIANT_URLS
     ? process.env.VARIANT_URLS.split(',').map(u => u.trim()).filter(Boolean)
@@ -18,7 +27,9 @@ function loadConfig() {
     variantUrls,
     variantLabels,
     adminSecret: process.env.ADMIN_SECRET || '',
-    minGenerationDelayMs: parseInt(process.env.MIN_GENERATION_DELAY_MS || '0', 10),
+    minGenerationDelayMs: parseNonNegativeInt('MIN_GENERATION_DELAY_MS', 0),
+    pregenDelayMs: parseNonNegativeInt('PREGEN_DELAY_MS', 2000),
+    pregenRetryDelayMs: parseNonNegativeInt('PREGEN_RETRY_DELAY_MS', 5000),
   };
 }
 

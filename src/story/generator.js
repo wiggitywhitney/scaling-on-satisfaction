@@ -35,8 +35,13 @@ export function createGenerator(client) {
 
           span.setAttribute('gen_ai.response.id', response.id);
 
+          // Strip leaked prompt artifacts (e.g. "**Word count: 100**")
+          const cleanText = textBlock.text
+            .replace(/\n*\*{0,2}\s*[Ww]ord\s*count[:\s]*\d+\s*\*{0,2}\s*$/m, '')
+            .trim();
+
           return {
-            text: textBlock.text,
+            text: cleanText,
             responseId: response.id,
             spanContext: span.spanContext(),
           };

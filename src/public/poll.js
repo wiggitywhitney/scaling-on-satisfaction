@@ -1,14 +1,35 @@
 // ABOUTME: Polling state machine for audience story loading
-// ABOUTME: Guards against overlapping fetches during slow LLM generation
+// ABOUTME: Guards against overlapping fetches and gates display on variant readiness
 
 /**
  * Creates a polling controller that prevents overlapping story fetches.
  * During LLM generation (which can take seconds), multiple poll cycles
- * would otherwise each trigger a new fetch, creating duplicate sessions.
+ * would otherwise each trigger a new fetch, creating duplicate requests.
+ *
+ * When synchronized loading is active (ready: false in status), the
+ * controller fetches the story (overlapping generation with the sync
+ * window) but holds the content until ready becomes true.
  */
-export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart, onLoading, onError }) {
+export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart, onLoading, onError, onWaitingForReady, onReset }) {
   let displayedPart = 0;
   let fetchingPart = 0;
+  let heldData = null;
+  let lastReady = true;
+
+  function releaseHeld() {
+    if (!heldData) return;
+    displayedPart = heldData.part;
+    onPart(heldData);
+    heldData = null;
+  }
+
+  function reset() {
+    displayedPart = 0;
+    fetchingPart = 0;
+    heldData = null;
+    lastReady = true;
+    if (onReset) onReset();
+  }
 
   async function fetchPart(part) {
     if (fetchingPart >= part) return;
@@ -17,8 +38,12 @@ export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart,
 
     try {
       const data = await fetchStoryPart(part);
-      displayedPart = data.part;
-      onPart(data);
+      heldData = data;
+      if (lastReady) {
+        releaseHeld();
+      } else if (onWaitingForReady) {
+        onWaitingForReady();
+      }
     } catch (err) {
       fetchingPart = 0;
       onError(err);
@@ -28,8 +53,22 @@ export function createPollController({ fetchStoryStatus, fetchStoryPart, onPart,
   async function poll() {
     try {
       const data = await fetchStoryStatus();
+      const ready = data.ready !== false;
+      lastReady = ready;
+
+      // Server was reset — reset client state to match
+      if (data.currentPart < displayedPart) {
+        reset();
+      }
+
       if (data.currentPart > displayedPart) {
         fetchPart(data.currentPart);
+      }
+
+      if (heldData && ready) {
+        releaseHeld();
+      } else if (heldData && !ready && onWaitingForReady) {
+        onWaitingForReady();
       }
     } catch {
       // Silently retry on next poll
