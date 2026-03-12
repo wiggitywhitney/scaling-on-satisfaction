@@ -339,10 +339,7 @@ export function createAdminRouter(generator) {
   });
 
   router.post('/reset', requireSecret, async (req, res) => {
-    currentPart = 0;
-    readyAt = 0;
-    sharedStory.clear();
-    inFlightGenerations.clear();
+    resetState();
     const forwarded = req.query.forwarded === 'true';
     const variants = forwarded ? [] : await forwardToVariants('reset', req.query.secret);
     res.json({ currentPart, totalParts: TOTAL_PARTS, variants });
