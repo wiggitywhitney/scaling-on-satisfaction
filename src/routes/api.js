@@ -142,6 +142,7 @@ export function createApiRouter(generator) {
     }
 
     // Fallback: generate on demand with in-flight deduplication
+    const epoch = generationEpoch;
     try {
       let resultPromise = inFlightGenerations.get(partNumber);
       if (!resultPromise) {
@@ -152,14 +153,18 @@ export function createApiRouter(generator) {
           config.round
         );
         inFlightGenerations.set(partNumber, resultPromise);
-        resultPromise.catch(() => {}).finally(() => inFlightGenerations.delete(partNumber));
+        resultPromise.catch(() => {}).finally(() => {
+          if (inFlightGenerations.get(partNumber) === resultPromise) {
+            inFlightGenerations.delete(partNumber);
+          }
+        });
       }
 
       const genStart = Date.now();
       const result = await resultPromise;
 
-      // Store in shared store so all users get the same story
-      if (!sharedStory.has(partNumber)) {
+      // Store in shared store so all users get the same story (skip if reset occurred mid-generation)
+      if (!sharedStory.has(partNumber) && epoch === generationEpoch) {
         sharedStory.set(partNumber, result);
       }
 
@@ -310,7 +315,13 @@ export function createAdminRouter(generator) {
     const failed = [];
     let generated = 0;
     const forwarded = req.query.forwarded === 'true';
-    const singlePart = req.query.part ? parseInt(req.query.part, 10) : null;
+    let singlePart = null;
+    if (req.query.part != null) {
+      singlePart = parseInt(req.query.part, 10);
+      if (isNaN(singlePart) || singlePart < 1 || singlePart > TOTAL_PARTS) {
+        return res.status(400).json({ error: `Invalid part: ${req.query.part}. Valid range: 1-${TOTAL_PARTS}` });
+      }
+    }
 
     const parts = singlePart ? [singlePart] : Array.from({ length: TOTAL_PARTS }, (_, i) => i + 1);
 
