@@ -43,6 +43,12 @@ export function resetState() {
   generationEpoch++;
 }
 
+function createDeferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
 function isReady() {
   return readyAt === 0 || Date.now() >= readyAt;
 }
@@ -57,37 +63,40 @@ export function createApiRouter(generator) {
     if (!sharedStory.has(1) && !inFlightGenerations.has(1)) {
       const delay = config.pregenDelayMs;
       const epoch = generationEpoch;
-      // Reserve slot immediately to prevent duplicates during delay
-      inFlightGenerations.set(1, 'pending');
+      // Reserve slot with a deferred promise so concurrent requests can await it
+      const deferred = createDeferred();
+      inFlightGenerations.set(1, deferred.promise);
       const generate = () => {
         if (sharedStory.has(1) || epoch !== generationEpoch) {
           inFlightGenerations.delete(1);
+          deferred.reject(new Error('Generation cancelled'));
           return;
         }
-        const genPromise = generator.generatePart(1, config.variantStyle, config.variantModel, config.round);
-        inFlightGenerations.set(1, genPromise);
-        genPromise
+        generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
           .then(result => {
             if (epoch === generationEpoch && !sharedStory.has(1)) {
               sharedStory.set(1, result);
             }
             inFlightGenerations.delete(1);
+            deferred.resolve(result);
           })
           .catch(err => {
             console.error(`Pre-generation failed for part 1 (warmup): ${err.message}`);
-            // Retry once after delay — track retry in inFlightGenerations to prevent duplicates
+            // Retry once after delay
             setTimeout(() => {
-              const retryPromise = generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
+              generator.generatePart(1, config.variantStyle, config.variantModel, config.round)
                 .then(result => {
                   if (epoch === generationEpoch && !sharedStory.has(1)) {
                     sharedStory.set(1, result);
                   }
+                  inFlightGenerations.delete(1);
+                  deferred.resolve(result);
                 })
                 .catch(retryErr => {
                   console.error(`Pre-generation retry failed for part 1 (warmup): ${retryErr.message}`);
-                })
-                .finally(() => inFlightGenerations.delete(1));
-              inFlightGenerations.set(1, retryPromise);
+                  inFlightGenerations.delete(1);
+                  deferred.reject(retryErr);
+                });
             }, config.pregenRetryDelayMs);
           });
       };
@@ -174,37 +183,40 @@ export function createApiRouter(generator) {
       const nextPart = partNumber + 1;
       if (nextPart <= TOTAL_PARTS && !sharedStory.has(nextPart) && !inFlightGenerations.has(nextPart)) {
         const epoch = generationEpoch;
-        // Reserve slot immediately to prevent duplicates during delay
-        inFlightGenerations.set(nextPart, 'pending');
+        // Reserve slot with a deferred promise so concurrent requests can await it
+        const deferred = createDeferred();
+        inFlightGenerations.set(nextPart, deferred.promise);
         const generate = () => {
           if (sharedStory.has(nextPart) || epoch !== generationEpoch) {
             inFlightGenerations.delete(nextPart);
+            deferred.reject(new Error('Generation cancelled'));
             return;
           }
-          const genPromise = generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round);
-          inFlightGenerations.set(nextPart, genPromise);
-          genPromise
+          generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
             .then(nextResult => {
               if (epoch === generationEpoch && !sharedStory.has(nextPart)) {
                 sharedStory.set(nextPart, nextResult);
               }
               inFlightGenerations.delete(nextPart);
+              deferred.resolve(nextResult);
             })
             .catch(err => {
               console.error(`Pre-generation failed for part ${nextPart}: ${err.message}`);
-              // Retry once after delay — track retry in inFlightGenerations to prevent duplicates
+              // Retry once after delay
               setTimeout(() => {
-                const retryPromise = generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
+                generator.generatePart(nextPart, config.variantStyle, config.variantModel, config.round)
                   .then(nextResult => {
                     if (epoch === generationEpoch && !sharedStory.has(nextPart)) {
                       sharedStory.set(nextPart, nextResult);
                     }
+                    inFlightGenerations.delete(nextPart);
+                    deferred.resolve(nextResult);
                   })
                   .catch(retryErr => {
                     console.error(`Pre-generation retry failed for part ${nextPart}: ${retryErr.message}`);
-                  })
-                  .finally(() => inFlightGenerations.delete(nextPart));
-                inFlightGenerations.set(nextPart, retryPromise);
+                    inFlightGenerations.delete(nextPart);
+                    deferred.reject(retryErr);
+                  });
               }, config.pregenRetryDelayMs);
             });
         };
