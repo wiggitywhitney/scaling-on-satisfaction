@@ -729,46 +729,6 @@ describe('API routes', () => {
     });
   });
 
-  describe('GET /api/story/:part generation delay', () => {
-    it('delays response when MIN_GENERATION_DELAY_MS is set and generation is fast', async () => {
-      const previousDelay = config.minGenerationDelayMs;
-      config.minGenerationDelayMs = 200;
-      try {
-        const app = buildApp(mockGenerator);
-        await request(app, '/api/admin/advance', { method: 'POST' });
-
-        const start = Date.now();
-        await request(app, '/api/story/1');
-        const elapsed = Date.now() - start;
-
-        expect(elapsed).toBeGreaterThanOrEqual(180); // allow small timing tolerance
-      } finally {
-        config.minGenerationDelayMs = previousDelay;
-      }
-    });
-
-    it('does not delay cached responses from shared store', async () => {
-      const previousDelay = config.minGenerationDelayMs;
-      config.minGenerationDelayMs = 200;
-      try {
-        const app = buildApp(mockGenerator);
-        await request(app, '/api/admin/advance', { method: 'POST' });
-
-        // First request triggers generation (with delay)
-        await request(app, '/api/story/1');
-
-        // Second request serves from shared store (no delay)
-        const start = Date.now();
-        await request(app, '/api/story/1');
-        const elapsed = Date.now() - start;
-
-        expect(elapsed).toBeLessThan(100);
-      } finally {
-        config.minGenerationDelayMs = previousDelay;
-      }
-    });
-  });
-
   describe('POST /admin/advance', () => {
     it('advances currentPart from 0 to 1', async () => {
       const app = buildApp(mockGenerator);

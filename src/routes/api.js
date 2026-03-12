@@ -160,20 +160,11 @@ export function createApiRouter(generator) {
         });
       }
 
-      const genStart = Date.now();
       const result = await resultPromise;
 
       // Store in shared store so all users get the same story (skip if reset occurred mid-generation)
       if (!sharedStory.has(partNumber) && epoch === generationEpoch) {
         sharedStory.set(partNumber, result);
-      }
-
-      if (config.minGenerationDelayMs > 0) {
-        const elapsed = Date.now() - genStart;
-        const remaining = config.minGenerationDelayMs - elapsed;
-        if (remaining > 0) {
-          await new Promise(resolve => setTimeout(resolve, remaining));
-        }
       }
 
       res.json({

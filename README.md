@@ -110,7 +110,6 @@ This assumes `ANTHROPIC_API_KEY` is already set in your shell. The audience UI i
 | `ADMIN_SECRET` | | Secret for authenticating admin mutation endpoints |
 | `PREGEN_DELAY_MS` | `2000` | Stagger delay before background pre-generation starts (avoids rate-limit competition when variants share an API key) |
 | `PREGEN_RETRY_DELAY_MS` | `5000` | Delay before retrying a failed background pre-generation |
-| `MIN_GENERATION_DELAY_MS` | `0` | Minimum milliseconds before returning a generated story part |
 
 All other configuration (`VARIANT_STYLE`, `VARIANT_MODEL`, `ROUND`) is baked into container images at build time via the build scripts.
 
