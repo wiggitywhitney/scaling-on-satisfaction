@@ -9,11 +9,11 @@ CLEANUP_PIDS=()
 
 free_port() {
   local port="$1"
-  local pid
-  pid=$(lsof -ti :"$port" 2>/dev/null || true)
-  if [[ -n "$pid" ]]; then
-    echo "  Killing stale process on port ${port} (PID ${pid})..."
-    kill "$pid" 2>/dev/null || true
+  local pids
+  pids=$(lsof -ti :"$port" 2>/dev/null || true)
+  if [[ -n "$pids" ]]; then
+    echo "  Killing stale process(es) on port ${port}..."
+    echo "$pids" | xargs kill 2>/dev/null || true
     sleep 1
   fi
 }
