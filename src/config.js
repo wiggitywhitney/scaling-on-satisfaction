@@ -27,7 +27,6 @@ function loadConfig() {
     variantUrls,
     variantLabels,
     adminSecret: process.env.ADMIN_SECRET || '',
-    minGenerationDelayMs: parseNonNegativeInt('MIN_GENERATION_DELAY_MS', 0),
     pregenDelayMs: parseNonNegativeInt('PREGEN_DELAY_MS', 2000),
     pregenRetryDelayMs: parseNonNegativeInt('PREGEN_RETRY_DELAY_MS', 5000),
   };

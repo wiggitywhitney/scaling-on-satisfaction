@@ -17,14 +17,11 @@ OPUS_MODEL="claude-opus-4-6"
 echo "Building Round 2 images (Haiku vs Opus)..."
 
 echo "  App 2a (Haiku: ${HAIKU_MODEL})..."
-# Haiku responds much faster than Opus — add artificial delay so both variants
-# take similar time, preventing the audience from guessing which is which.
 docker build \
   --platform linux/amd64 \
   --build-arg VARIANT_STYLE=funny \
   --build-arg VARIANT_MODEL="${HAIKU_MODEL}" \
   --build-arg ROUND=2 \
-  --build-arg MIN_GENERATION_DELAY_MS=3000 \
   -t "${REGISTRY}-2a:${TAG}" \
   .
 
