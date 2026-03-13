@@ -25,12 +25,12 @@ Starting split: 50/50. Flagger shifts traffic toward the variant with higher sat
 **Theme:** "Developer at the Clown Native Computing Foundation Circus"
 **Character:** Rae Okonkwo — a backend developer and keyboard warrior, completely out of their element performing a Houdini act at the circus.
 
-Two apps use the winning style from Round 1 but different models. Same 5-part story (~100 words per part). Tests whether the expensive model is worth the cost.
+Two apps use the same style (funny) but different models. Same 5-part story (~100 words per part). Tests whether the expensive model is worth the cost.
 
 | App | Style | Model |
 |-----|-------|-------|
-| 2a  | Winning style from Round 1 | Haiku 4.5 (cheap) |
-| 2b  | Winning style from Round 1 | Opus 4.6 (expensive) |
+| 2a  | Funny | Haiku 4.5 (cheap) |
+| 2b  | Funny | Opus 4.6 (expensive) |
 
 Starting split: 100/0 (everyone on cheap). Flagger canary-deploys the expensive model to a small percentage and shifts traffic if it scores higher.
 
