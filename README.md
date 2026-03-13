@@ -25,12 +25,12 @@ Starting split: 50/50. Flagger shifts traffic toward the variant with higher sat
 **Theme:** "Developer at the Clown Native Computing Foundation Circus"
 **Character:** Rae Okonkwo — a backend developer and keyboard warrior, completely out of their element performing a Houdini act at the circus.
 
-Two apps use the winning style from Round 1 but different models. Same 5-part story (~100 words per part). Tests whether the expensive model is worth the cost.
+Two apps use the same style (funny) but different models. Same 5-part story (~100 words per part). Tests whether the expensive model is worth the cost.
 
 | App | Style | Model |
 |-----|-------|-------|
-| 2a  | Winning style from Round 1 | Haiku 4.5 (cheap) |
-| 2b  | Winning style from Round 1 | Opus 4.6 (expensive) |
+| 2a  | Funny | Haiku 4.5 (cheap) |
+| 2b  | Funny | Opus 4.6 (expensive) |
 
 Starting split: 100/0 (everyone on cheap). Flagger canary-deploys the expensive model to a small percentage and shifts traffic if it scores higher.
 
@@ -55,8 +55,8 @@ Pre-built images are available on Docker Hub:
 |-------|-------|-------|-------|
 | `wiggitywhitney/story-app-1a:latest` | 1 | Dry, academic | Claude Sonnet 4 |
 | `wiggitywhitney/story-app-1b:latest` | 1 | Funny, engaging | Claude Sonnet 4 |
-| `wiggitywhitney/story-app-2a:latest` | 2 | Funny (configurable) | Claude Haiku 4.5 |
-| `wiggitywhitney/story-app-2b:latest` | 2 | Funny (configurable) | Claude Opus 4.6 |
+| `wiggitywhitney/story-app-2a:latest` | 2 | Funny | Claude Haiku 4.5 |
+| `wiggitywhitney/story-app-2b:latest` | 2 | Funny | Claude Opus 4.6 |
 
 Pull all images:
 
@@ -138,10 +138,10 @@ Example:
 
 ### Round 2: Model Variants
 
-Builds two images with different models (same prompt style). Pass the winning style from Round 1 as the third argument:
+Builds two images with different models (same prompt style, hardcoded to `funny`):
 
 ```bash
-./scripts/build-round2.sh [registry] [tag] [style]
+./scripts/build-round2.sh [registry] [tag]
 ```
 
 | Image | Model |
@@ -152,7 +152,7 @@ Builds two images with different models (same prompt style). Pass the winning st
 Example:
 
 ```bash
-./scripts/build-round2.sh wiggitywhitney/story-app latest funny
+./scripts/build-round2.sh wiggitywhitney/story-app latest
 # → wiggitywhitney/story-app-2a:latest
 # → wiggitywhitney/story-app-2b:latest
 ```
