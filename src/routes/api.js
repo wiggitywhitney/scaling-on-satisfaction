@@ -65,6 +65,7 @@ export function createApiRouter(generator) {
       const epoch = generationEpoch;
       // Reserve slot with a deferred promise so concurrent requests can await it
       const deferred = createDeferred();
+      deferred.promise.catch(() => {}); // Prevent unhandled rejection if reset cancels this generation
       inFlightGenerations.set(1, deferred.promise);
       const generate = () => {
         if (sharedStory.has(1) || epoch !== generationEpoch) {
@@ -181,6 +182,7 @@ export function createApiRouter(generator) {
         const epoch = generationEpoch;
         // Reserve slot with a deferred promise so concurrent requests can await it
         const deferred = createDeferred();
+        deferred.promise.catch(() => {}); // Prevent unhandled rejection if reset cancels this generation
         inFlightGenerations.set(nextPart, deferred.promise);
         const generate = () => {
           if (sharedStory.has(nextPart) || epoch !== generationEpoch) {
