@@ -138,10 +138,10 @@ Example:
 
 ### Round 2: Model Variants
 
-Builds two images with different models (same prompt style). Pass the winning style from Round 1 as the third argument:
+Builds two images with different models (same prompt style, hardcoded to `funny`):
 
 ```bash
-./scripts/build-round2.sh [registry] [tag] [style]
+./scripts/build-round2.sh [registry] [tag]
 ```
 
 | Image | Model |
@@ -152,7 +152,7 @@ Builds two images with different models (same prompt style). Pass the winning st
 Example:
 
 ```bash
-./scripts/build-round2.sh wiggitywhitney/story-app latest funny
+./scripts/build-round2.sh wiggitywhitney/story-app latest
 # → wiggitywhitney/story-app-2a:latest
 # → wiggitywhitney/story-app-2b:latest
 ```
