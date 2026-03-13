@@ -55,8 +55,8 @@ Pre-built images are available on Docker Hub:
 |-------|-------|-------|-------|
 | `wiggitywhitney/story-app-1a:latest` | 1 | Dry, academic | Claude Sonnet 4 |
 | `wiggitywhitney/story-app-1b:latest` | 1 | Funny, engaging | Claude Sonnet 4 |
-| `wiggitywhitney/story-app-2a:latest` | 2 | Funny (configurable) | Claude Haiku 4.5 |
-| `wiggitywhitney/story-app-2b:latest` | 2 | Funny (configurable) | Claude Opus 4.6 |
+| `wiggitywhitney/story-app-2a:latest` | 2 | Funny | Claude Haiku 4.5 |
+| `wiggitywhitney/story-app-2b:latest` | 2 | Funny | Claude Opus 4.6 |
 
 Pull all images:
 
