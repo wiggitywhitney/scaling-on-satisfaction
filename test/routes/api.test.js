@@ -770,6 +770,43 @@ describe('API routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.currentPart).toBe(0);
     });
+
+    it('does not crash when reset cancels an in-flight warmup generation', async () => {
+      // Set a pregen delay so generate() hasn't fired yet when reset runs,
+      // deterministically hitting the epoch-cancel path
+      const previousPregenDelay = config.pregenDelayMs;
+      config.pregenDelayMs = 50;
+      const slowGenerator = {
+        generatePart: vi.fn().mockImplementation(() =>
+          new Promise(resolve => setTimeout(() => resolve({
+            text: 'Story part',
+            responseId: 'msg_slow',
+            spanContext: { traceId: 'trace_001', spanId: 'span_001', traceFlags: 1 },
+          }), 200))
+        ),
+      };
+      const app = buildApp(slowGenerator);
+
+      try {
+        // Warmup schedules background generation (delayed by pregenDelayMs)
+        await request(app, '/api/story/warmup', { method: 'POST' });
+
+        // Reset before delayed generate() executes, forcing epoch-cancel path
+        const resetRes = await request(app, '/api/admin/reset', { method: 'POST' });
+        expect(resetRes.status).toBe(200);
+
+        // Wait for the delayed generate() to fire and encounter the epoch mismatch
+        // The deferred.reject() should not cause an unhandled rejection
+        await new Promise(resolve => setTimeout(resolve, 120));
+
+        // Server should still be functional
+        const statusRes = await request(app, '/api/story/status');
+        expect(statusRes.status).toBe(200);
+        expect(statusRes.body.currentPart).toBe(0);
+      } finally {
+        config.pregenDelayMs = previousPregenDelay;
+      }
+    });
   });
 
   describe('multi-variant admin forwarding', () => {

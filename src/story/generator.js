@@ -21,7 +21,7 @@ export function createGenerator(client) {
         try {
           const response = await client.messages.create({
             model,
-            max_tokens: 1024,
+            max_tokens: 300,
             system: prompt.system,
             messages: [{ role: 'user', content: prompt.user }],
           });
