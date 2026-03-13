@@ -772,7 +772,10 @@ describe('API routes', () => {
     });
 
     it('does not crash when reset cancels an in-flight warmup generation', async () => {
-      // Simulate slow generation so warmup is still in-flight when reset fires
+      // Set a pregen delay so generate() hasn't fired yet when reset runs,
+      // deterministically hitting the epoch-cancel path
+      const previousPregenDelay = config.pregenDelayMs;
+      config.pregenDelayMs = 50;
       const slowGenerator = {
         generatePart: vi.fn().mockImplementation(() =>
           new Promise(resolve => setTimeout(() => resolve({
@@ -784,21 +787,25 @@ describe('API routes', () => {
       };
       const app = buildApp(slowGenerator);
 
-      // Warmup starts background generation
-      await request(app, '/api/story/warmup', { method: 'POST' });
+      try {
+        // Warmup schedules background generation (delayed by pregenDelayMs)
+        await request(app, '/api/story/warmup', { method: 'POST' });
 
-      // Reset while warmup generation is still pending
-      const resetRes = await request(app, '/api/admin/reset', { method: 'POST' });
-      expect(resetRes.status).toBe(200);
+        // Reset before delayed generate() executes, forcing epoch-cancel path
+        const resetRes = await request(app, '/api/admin/reset', { method: 'POST' });
+        expect(resetRes.status).toBe(200);
 
-      // Wait for the delayed generate() to fire and encounter the epoch mismatch
-      // The deferred.reject() should not cause an unhandled rejection
-      await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait for the delayed generate() to fire and encounter the epoch mismatch
+        // The deferred.reject() should not cause an unhandled rejection
+        await new Promise(resolve => setTimeout(resolve, 120));
 
-      // Server should still be functional
-      const statusRes = await request(app, '/api/story/status');
-      expect(statusRes.status).toBe(200);
-      expect(statusRes.body.currentPart).toBe(0);
+        // Server should still be functional
+        const statusRes = await request(app, '/api/story/status');
+        expect(statusRes.status).toBe(200);
+        expect(statusRes.body.currentPart).toBe(0);
+      } finally {
+        config.pregenDelayMs = previousPregenDelay;
+      }
     });
   });
 
