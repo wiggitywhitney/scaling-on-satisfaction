@@ -42,13 +42,13 @@ The evaluation span event in `src/telemetry.js` already follows the gen_ai seman
 
 ## Milestones
 
-- [ ] **M1: Add required and recommended span attributes** — Add `gen_ai.provider.name`, `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, and `gen_ai.request.max_tokens` to the generation span in `src/story/generator.js`. All values come from the existing Anthropic SDK response object.
+- [x] **M1: Add required and recommended span attributes** — Add `gen_ai.provider.name`, `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, and `gen_ai.request.max_tokens` to the generation span in `src/story/generator.js`. All values come from the existing Anthropic SDK response object.
 
-- [ ] **M2: Add prompt/completion content capture** — Add a `gen_ai.client.inference.operation.details` span event to the generation span with `gen_ai.input.messages` (system + user prompt) and `gen_ai.output.messages` (assistant response). This is opt-in and may have privacy implications — consider whether to enable by default or behind an env var.
+- [x] **M2: Add prompt/completion content capture** — Add a `gen_ai.client.inference.operation.details` span event to the generation span with `gen_ai.input.messages` (system + user prompt) and `gen_ai.output.messages` (assistant response). For this demo app, content capture is always-on.
 
-- [ ] **M3: Rebuild and push container images** — Rebuild all four Docker images (`story-app-1a`, `story-app-1b`, `story-app-2a`, `story-app-2b`) with the updated code and push to Docker Hub.
+- [x] **M3: Rebuild and push container images** — Rebuild all four Docker images (`story-app-1a`, `story-app-1b`, `story-app-2a`, `story-app-2b`) with the updated code and push to Docker Hub.
 
-- [ ] **M4: Verify in Datadog** — With Thomas's cluster running, confirm that the generation spans appear with full attributes in Datadog APM. Verify token counts, model name, and provider are visible on the span.
+- [~] **M4: Verify in Datadog** — deferred to demo prep with Thomas's cluster — With Thomas's cluster running, confirm that the generation spans appear with full attributes in Datadog APM. Verify token counts, model name, and provider are visible on the span.
 
 ## Technical Notes
 
@@ -69,3 +69,4 @@ The evaluation span event in `src/telemetry.js` already follows the gen_ai seman
 |------|----------|-----------|
 | 2026-03-16 | Use OTel gen_ai semantic conventions, not Datadog SDK | The app is already instrumented with OTel. Adding vendor-specific SDKs would conflict with the OTel-native approach and the talk's message. |
 | 2026-03-16 | Prompt/completion capture opt-in (M2 separate from M1) | Privacy consideration — prompts may contain sensitive content. Separate milestone so M1 can ship independently. |
+| 2026-03-16 | Content capture always-on (no env var gate) | Demo app with non-sensitive story prompts. Simplest approach for KubeCon demo. |
