@@ -48,7 +48,7 @@ The evaluation span event in `src/telemetry.js` already follows the gen_ai seman
 
 - [x] **M3: Rebuild and push container images** — Rebuild all four Docker images (`story-app-1a`, `story-app-1b`, `story-app-2a`, `story-app-2b`) with the updated code and push to Docker Hub.
 
-- [ ] **M4: Verify in Datadog** — With Thomas's cluster running, confirm that the generation spans appear with full attributes in Datadog APM. Verify token counts, model name, and provider are visible on the span.
+- [~] **M4: Verify in Datadog** — deferred to demo prep with Thomas's cluster — With Thomas's cluster running, confirm that the generation spans appear with full attributes in Datadog APM. Verify token counts, model name, and provider are visible on the span.
 
 ## Technical Notes
 
