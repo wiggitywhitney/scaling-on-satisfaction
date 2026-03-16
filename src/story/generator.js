@@ -16,6 +16,8 @@ export function createGenerator(client) {
         attributes: {
           'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': model,
+          'gen_ai.provider.name': 'anthropic',
+          'gen_ai.request.max_tokens': 300,
         },
       }, async (span) => {
         try {
@@ -34,6 +36,9 @@ export function createGenerator(client) {
           }
 
           span.setAttribute('gen_ai.response.id', response.id);
+          span.setAttribute('gen_ai.response.model', response.model);
+          span.setAttribute('gen_ai.usage.input_tokens', response.usage.input_tokens);
+          span.setAttribute('gen_ai.usage.output_tokens', response.usage.output_tokens);
 
           // Strip leaked prompt artifacts (e.g. "**Word count: 100**")
           const cleanText = textBlock.text

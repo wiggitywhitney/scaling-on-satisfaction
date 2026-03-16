@@ -42,7 +42,7 @@ The evaluation span event in `src/telemetry.js` already follows the gen_ai seman
 
 ## Milestones
 
-- [ ] **M1: Add required and recommended span attributes** — Add `gen_ai.provider.name`, `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, and `gen_ai.request.max_tokens` to the generation span in `src/story/generator.js`. All values come from the existing Anthropic SDK response object.
+- [x] **M1: Add required and recommended span attributes** — Add `gen_ai.provider.name`, `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, and `gen_ai.request.max_tokens` to the generation span in `src/story/generator.js`. All values come from the existing Anthropic SDK response object.
 
 - [ ] **M2: Add prompt/completion content capture** — Add a `gen_ai.client.inference.operation.details` span event to the generation span with `gen_ai.input.messages` (system + user prompt) and `gen_ai.output.messages` (assistant response). This is opt-in and may have privacy implications — consider whether to enable by default or behind an env var.
 

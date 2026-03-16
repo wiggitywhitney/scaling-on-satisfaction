@@ -27,6 +27,7 @@ Development progress log for scaling-on-satisfaction. Tracks implementation mile
 - Vote telemetry includes `story.part` attribute in `gen_ai.evaluation.result` span events for per-part satisfaction analysis
 
 - (2026-03-11) Updated README with shared story serving, stateless architecture, story.part telemetry, and rebuilt images documentation
+- (2026-03-16) Gen AI semantic convention attributes on generation span: provider name, response model, token usage, max_tokens (PRD #16, M1)
 
 ### Changed
 - Removed SYNC_DELAY_MS config (replaced by warmup + pre-generation pipeline)
