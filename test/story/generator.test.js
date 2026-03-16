@@ -250,6 +250,39 @@ describe('generator', () => {
       expect(mockSpan.setAttribute).toHaveBeenCalledWith('gen_ai.response.id', 'msg_resp_id');
     });
 
+    it('emits gen_ai.client.inference.operation.details event with prompt and completion', async () => {
+      mockClient.messages.create.mockResolvedValue(
+        mockAnthropicResponse({
+          id: 'msg_event',
+          content: [{ type: 'text', text: 'The story unfolds...' }],
+        })
+      );
+
+      await generator.generatePart(1, 'funny', 'claude-sonnet-4-20250514');
+
+      expect(mockSpan.addEvent).toHaveBeenCalledWith(
+        'gen_ai.client.inference.operation.details',
+        expect.objectContaining({
+          'gen_ai.input.messages': expect.any(String),
+          'gen_ai.output.messages': expect.any(String),
+        })
+      );
+
+      const eventCall = mockSpan.addEvent.mock.calls.find(
+        c => c[0] === 'gen_ai.client.inference.operation.details'
+      );
+      const inputMessages = JSON.parse(eventCall[1]['gen_ai.input.messages']);
+      expect(inputMessages).toEqual(expect.arrayContaining([
+        expect.objectContaining({ role: 'system' }),
+        expect.objectContaining({ role: 'user' }),
+      ]));
+
+      const outputMessages = JSON.parse(eventCall[1]['gen_ai.output.messages']);
+      expect(outputMessages).toEqual([
+        expect.objectContaining({ role: 'assistant', content: 'The story unfolds...' }),
+      ]);
+    });
+
     it('ends the span after successful generation', async () => {
       mockClient.messages.create.mockResolvedValue(
         mockAnthropicResponse({ id: 'msg_end' })
