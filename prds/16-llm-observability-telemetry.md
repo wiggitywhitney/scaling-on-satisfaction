@@ -46,7 +46,7 @@ The evaluation span event in `src/telemetry.js` already follows the gen_ai seman
 
 - [x] **M2: Add prompt/completion content capture** — Add a `gen_ai.client.inference.operation.details` span event to the generation span with `gen_ai.input.messages` (system + user prompt) and `gen_ai.output.messages` (assistant response). This is opt-in and may have privacy implications — consider whether to enable by default or behind an env var.
 
-- [ ] **M3: Rebuild and push container images** — Rebuild all four Docker images (`story-app-1a`, `story-app-1b`, `story-app-2a`, `story-app-2b`) with the updated code and push to Docker Hub.
+- [x] **M3: Rebuild and push container images** — Rebuild all four Docker images (`story-app-1a`, `story-app-1b`, `story-app-2a`, `story-app-2b`) with the updated code and push to Docker Hub.
 
 - [ ] **M4: Verify in Datadog** — With Thomas's cluster running, confirm that the generation spans appear with full attributes in Datadog APM. Verify token counts, model name, and provider are visible on the span.
 
