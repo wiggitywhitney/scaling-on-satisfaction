@@ -240,6 +240,20 @@ describe('generator', () => {
       expect(mockSpan.setAttribute).toHaveBeenCalledWith('gen_ai.usage.output_tokens', 150);
     });
 
+    it('skips gen_ai.usage.input_tokens when null in API response', async () => {
+      mockClient.messages.create.mockResolvedValue(
+        mockAnthropicResponse({
+          id: 'msg_null_input',
+          usage: { input_tokens: null, output_tokens: 75 },
+        })
+      );
+
+      await generator.generatePart(1, 'funny', 'claude-sonnet-4-20250514');
+
+      expect(mockSpan.setAttribute).not.toHaveBeenCalledWith('gen_ai.usage.input_tokens', null);
+      expect(mockSpan.setAttribute).toHaveBeenCalledWith('gen_ai.usage.output_tokens', 75);
+    });
+
     it('sets gen_ai.response.id on the span after API call', async () => {
       mockClient.messages.create.mockResolvedValue(
         mockAnthropicResponse({ id: 'msg_resp_id' })

@@ -37,7 +37,9 @@ export function createGenerator(client) {
 
           span.setAttribute('gen_ai.response.id', response.id);
           span.setAttribute('gen_ai.response.model', response.model);
-          span.setAttribute('gen_ai.usage.input_tokens', response.usage.input_tokens);
+          if (response.usage.input_tokens != null) {
+            span.setAttribute('gen_ai.usage.input_tokens', response.usage.input_tokens);
+          }
           span.setAttribute('gen_ai.usage.output_tokens', response.usage.output_tokens);
 
           span.addEvent('gen_ai.client.inference.operation.details', {
